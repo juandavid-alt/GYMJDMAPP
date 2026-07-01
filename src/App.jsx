@@ -1,110 +1,58 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
   Plus, TrendingUp, Trash2, Dumbbell, Calendar, PlayCircle, Flame,
   ListChecks, CheckCircle2, ChevronDown, BookOpen, Check, Timer, X, Pill, Droplet,
-  Scale, Bell, BellRing
+  Scale, Bell, BellRing, Users
 } from "lucide-react";
+import Onboarding from "./Onboarding.jsx";
+import { EXERCISES, GUIDE, buildRoutine, restSecondsFor } from "./routine.js";
+import {
+  genId, getActiveUserId, clearActiveUser, getCachedUsers, fetchUsers,
+  loadUserData, saveUserKind, enqueueUpsert, enqueueDeletion, fullSync,
+  registerOnlineRetry,
+} from "./sync.js";
 
-const STORAGE_KEY = "jd-workout-logs";
-const SUPP_KEY = "jd-supplement-logs";
-const WEIGHT_KEY = "jd-weight-logs";
 const SNOOZE_KEY = "jd-weight-snooze";
-const REST_SECONDS = 120;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHECKIN_INTERVAL_DAYS = 30;
 
-const EXERCISES = [
-  "Press banca plano", "Press inclinado mancuernas", "Press militar",
-  "Elevaciones laterales", "Fondos en paralelas", "Extensión tríceps polea", "Press francés",
-  "Dominadas", "Remo con barra", "Remo en polea baja",
-  "Curl con barra", "Curl martillo", "Curl concentrado",
-  "Sentadilla", "Prensa", "Peso muerto rumano", "Curl femoral", "Extensión cuádriceps", "Elevación de talones",
-  "Curl 21s", "Curl inclinado mancuernas", "Curl predicador",
-  "Press cerrado", "Extensión tríceps overhead", "Patada de tríceps"
-];
-
-const GUIDE = [
-  { name: "Press banca plano", grupo: "Pecho", equipo: "Barra olímpica + banco plano", cue: "Escápulas retraídas, baja la barra al esternón con codos a 45°, empuja sin rebotar." },
-  { name: "Press inclinado mancuernas", grupo: "Pecho", equipo: "Mancuernas + banco inclinado 30-45°", cue: "Codos ligeramente por debajo de la línea de hombros, junta las mancuernas arriba sin chocarlas." },
-  { name: "Press militar", grupo: "Hombro", equipo: "Barra + rack o mancuernas de pie", cue: "Abdomen apretado, empuja la barra en línea recta sobre la cabeza, no arquear la espalda." },
-  { name: "Elevaciones laterales", grupo: "Hombro", equipo: "Mancuernas ligeras", cue: "Sube con codos ligeramente flexionados hasta la altura del hombro, controla la bajada." },
-  { name: "Fondos en paralelas", grupo: "Pecho", equipo: "Barras paralelas o máquina asistida", cue: "Inclina el torso adelante para pecho, mantente vertical para enfatizar tríceps." },
-  { name: "Extensión tríceps polea", grupo: "Tríceps", equipo: "Polea alta + cuerda o barra recta", cue: "Codos pegados al torso, extiende completo y aprieta el tríceps abajo." },
-  { name: "Press francés", grupo: "Tríceps", equipo: "Barra Z + banco plano", cue: "Baja la barra hacia la frente flexionando solo el codo, antebrazos fijos." },
-  { name: "Dominadas", grupo: "Espalda", equipo: "Barra de dominadas", cue: "Agarre prono, tira hasta pasar la barbilla la barra, baja controlado sin balanceo." },
-  { name: "Remo con barra", grupo: "Espalda", equipo: "Barra olímpica", cue: "Torso inclinado ~45°, tira hacia el ombligo, espalda neutra todo el movimiento." },
-  { name: "Remo en polea baja", grupo: "Espalda", equipo: "Polea baja + agarre en V", cue: "Pecho arriba, tira con los codos pegados al cuerpo, aprieta escápulas al final." },
-  { name: "Curl con barra", grupo: "Bíceps", equipo: "Barra recta o Z", cue: "Codos fijos a los costados, sube sin balancear el torso, baja lento (2-3s)." },
-  { name: "Curl martillo", grupo: "Bíceps", equipo: "Mancuernas", cue: "Agarre neutro (palmas enfrentadas), codos fijos, ideal para grosor del brazo." },
-  { name: "Curl concentrado", grupo: "Bíceps", equipo: "Mancuerna + banco", cue: "Codo apoyado en la cara interna del muslo, aísla el bíceps al máximo." },
-  { name: "Sentadilla", grupo: "Pierna", equipo: "Barra + rack", cue: "Pies al ancho de hombros, baja con caderas atrás, rodillas siguen la punta del pie." },
-  { name: "Prensa", grupo: "Pierna", equipo: "Máquina de prensa 45°", cue: "Pies a la altura de hombros en la plataforma, no bloquees rodillas al extender." },
-  { name: "Peso muerto rumano", grupo: "Pierna", equipo: "Barra o mancuernas", cue: "Rodillas semi-flexionadas fijas, baja la barra pegada a las piernas con espalda recta." },
-  { name: "Curl femoral", grupo: "Pierna", equipo: "Máquina de curl femoral (tumbado o sentado)", cue: "Flexiona la rodilla llevando el talón al glúteo, controla la vuelta." },
-  { name: "Extensión cuádriceps", grupo: "Pierna", equipo: "Máquina de extensión de piernas", cue: "Extiende completo apretando el cuádriceps, baja sin soltar el peso de golpe." },
-  { name: "Elevación de talones", grupo: "Pierna", equipo: "Máquina de pantorrilla o step + mancuerna", cue: "Sube lo más alto posible en la punta del pie, baja controlado hasta estirar bien." },
-  { name: "Curl 21s", grupo: "Bíceps", equipo: "Barra o mancuernas", cue: "7 reps mitad inferior + 7 mitad superior + 7 completas, mismo peso." },
-  { name: "Curl inclinado mancuernas", grupo: "Bíceps", equipo: "Mancuernas + banco inclinado", cue: "Banco a 45-60°, brazos colgando atrás para mayor estiramiento del bíceps." },
-  { name: "Curl predicador", grupo: "Bíceps", equipo: "Banco predicador (Scott) + barra Z", cue: "Apoya todo el brazo en el banco, no extiendas del todo para mantener tensión." },
-  { name: "Press cerrado", grupo: "Tríceps", equipo: "Barra + banco plano", cue: "Agarre al ancho de hombros, codos pegados al cuerpo al bajar la barra al pecho." },
-  { name: "Extensión tríceps overhead", grupo: "Tríceps", equipo: "Mancuerna o cuerda en polea", cue: "Codos apuntando al frente y fijos, baja detrás de la cabeza, extiende completo." },
-  { name: "Patada de tríceps", grupo: "Tríceps", equipo: "Mancuerna", cue: "Torso paralelo al piso, brazo pegado al costado, extiende solo el antebrazo." },
-];
-
-// Día 1 = Tracción, Día 2 = Empuje (intercambiados a pedido)
-const ROUTINE_DAYS = [
-  {
-    id: 1, title: "Tracción", subtitle: "Espalda · Bíceps", color: "#32ADE6",
-    exercises: [
-      { name: "Dominadas", sets: 4, reps: "8-10" },
-      { name: "Remo con barra", sets: 4, reps: "8-10" },
-      { name: "Remo en polea baja", sets: 3, reps: "10" },
-      { name: "Curl con barra", sets: 4, reps: "10" },
-      { name: "Curl martillo", sets: 3, reps: "12" },
-      { name: "Curl concentrado", sets: 3, reps: "12" },
-    ],
-  },
-  {
-    id: 2, title: "Empuje", subtitle: "Pecho · Hombro · Tríceps", color: "#FF3B30",
-    exercises: [
-      { name: "Press banca plano", sets: 4, reps: "8-10" },
-      { name: "Press inclinado mancuernas", sets: 3, reps: "10" },
-      { name: "Press militar", sets: 3, reps: "8-10" },
-      { name: "Elevaciones laterales", sets: 3, reps: "15" },
-      { name: "Fondos en paralelas", sets: 3, reps: "10" },
-      { name: "Extensión tríceps polea", sets: 4, reps: "12" },
-      { name: "Press francés", sets: 3, reps: "10" },
-    ],
-  },
-  {
-    id: 3, title: "Piernas", subtitle: "Cuádriceps · Isquiotibiales", color: "#34C759",
-    exercises: [
-      { name: "Sentadilla", sets: 4, reps: "8" },
-      { name: "Prensa", sets: 3, reps: "10" },
-      { name: "Peso muerto rumano", sets: 3, reps: "10" },
-      { name: "Curl femoral", sets: 3, reps: "12" },
-      { name: "Extensión cuádriceps", sets: 3, reps: "12" },
-      { name: "Elevación de talones", sets: 4, reps: "15" },
-    ],
-  },
-  {
-    id: 4, title: "Brazos", subtitle: "Especialización · Bíceps · Tríceps", color: "#AF52DE",
-    exercises: [
-      { name: "Curl 21s", sets: 3, reps: "21" },
-      { name: "Curl inclinado mancuernas", sets: 3, reps: "12" },
-      { name: "Curl predicador", sets: 3, reps: "10" },
-      { name: "Press cerrado", sets: 4, reps: "10" },
-      { name: "Extensión tríceps overhead", sets: 3, reps: "12" },
-      { name: "Patada de tríceps", sets: 3, reps: "15" },
-      { name: "Elevaciones laterales", sets: 3, reps: "15" },
-    ],
-  },
-];
-
 const SUPP_DEFAULTS = { "Proteína": 30, "Creatina": 5 };
 
-export default function WorkoutTracker() {
+// Gate de perfil: sin perfil activo -> onboarding; con perfil -> la app.
+export default function App() {
+  const [userId, setUserId] = useState(getActiveUserId());
+  const [profile, setProfile] = useState(() => getCachedUsers().find((u) => u.id === getActiveUserId()) || null);
+
+  useEffect(() => {
+    if (!userId) return;
+    const cached = getCachedUsers().find((u) => u.id === userId);
+    if (cached) setProfile(cached);
+    fetchUsers().then((list) => {
+      const u = list.find((x) => x.id === userId);
+      if (u) setProfile(u);
+    });
+  }, [userId]);
+
+  if (!userId) {
+    return <Onboarding onSelect={(id) => { setUserId(id); }} />;
+  }
+
+  const activeProfile = profile || { id: userId, name: "", days_per_week: 4, goal: "hipertrofia", experience: "intermedio" };
+
+  return (
+    <WorkoutTracker
+      key={userId}
+      userId={userId}
+      profile={activeProfile}
+      onSwitchProfile={() => { clearActiveUser(); setProfile(null); setUserId(null); }}
+    />
+  );
+}
+
+function WorkoutTracker({ userId, profile, onSwitchProfile }) {
+  const REST_SECONDS = restSecondsFor(profile);
+  const ROUTINE_DAYS = useMemo(() => buildRoutine(profile), [profile]);
   const [logs, setLogs] = useState([]);
   const [supps, setSupps] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -132,67 +80,105 @@ export default function WorkoutTracker() {
   );
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      setLogs(raw ? JSON.parse(raw) : []);
-    } catch (e) {
-      setLogs([]);
-    }
-    try {
-      const raw2 = localStorage.getItem(SUPP_KEY);
-      setSupps(raw2 ? JSON.parse(raw2) : []);
-    } catch (e) {
-      setSupps([]);
-    }
-    try {
-      const raw3 = localStorage.getItem(WEIGHT_KEY);
-      setWeights(raw3 ? JSON.parse(raw3) : []);
-    } catch (e) {
-      setWeights([]);
-    }
+    const data = loadUserData(userId);
+    setLogs(data.logs);
+    setSupps(data.supps);
+    setWeights(data.weights);
     setLoaded(true);
-  }, []);
+    registerOnlineRetry(() => userId);
+    // Sube pendientes y baja cambios del servidor.
+    fullSync(userId).then((merged) => {
+      if (merged) {
+        setLogs(merged.logs);
+        setSupps(merged.supps);
+        setWeights(merged.weights);
+      }
+    });
+  }, [userId]);
 
   // Rest timer ticking
+  const restEndRef = useRef(null);
+  const restDoneRef = useRef(false);
+
+  // Arranca el descanso al terminar una serie (duración según objetivo).
+  const startRest = () => {
+    restDoneRef.current = false;
+    restEndRef.current = Date.now() + REST_SECONDS * 1000;
+    setRestSeconds(REST_SECONDS);
+  };
+  const addRest = (extra) => {
+    restEndRef.current = (restEndRef.current || Date.now()) + extra * 1000;
+    setRestSeconds((s) => (s || 0) + extra);
+  };
+  const stopRest = () => {
+    restEndRef.current = null;
+    setRestSeconds(null);
+  };
+
+  // Sonido + vibración + notificación al terminar el descanso.
+  const alertRestDone = () => {
+    try { if (navigator.vibrate) navigator.vibrate([200, 90, 200]); } catch (e) {}
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        const ac = new Ctx();
+        const beep = (freq, start, dur) => {
+          const o = ac.createOscillator();
+          const g = ac.createGain();
+          o.type = "sine"; o.frequency.value = freq;
+          o.connect(g); g.connect(ac.destination);
+          g.gain.setValueAtTime(0.001, ac.currentTime + start);
+          g.gain.exponentialRampToValueAtTime(0.4, ac.currentTime + start + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + start + dur);
+          o.start(ac.currentTime + start); o.stop(ac.currentTime + start + dur);
+        };
+        beep(880, 0, 0.18); beep(1175, 0.2, 0.28);
+      }
+    } catch (e) {}
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("¡Descanso listo! 💪", { body: "Empieza tu siguiente serie.", icon: "/icon-192.png" });
+      }
+    } catch (e) {}
+  };
+
+  // Tick basado en timestamp (preciso al volver de segundo plano).
   useEffect(() => {
     if (restSeconds === null || restSeconds <= 0) return;
-    const t = setTimeout(() => setRestSeconds((s) => (s === null ? null : s - 1)), 1000);
-    return () => clearTimeout(t);
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((restEndRef.current - Date.now()) / 1000));
+      setRestSeconds(remaining);
+    };
+    const t = setInterval(tick, 500);
+    const onVis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", onVis); };
   }, [restSeconds]);
 
-  // Auto-hide "listo" state
+  // Al llegar a 0: avisar una vez y auto-ocultar.
   useEffect(() => {
-    if (restSeconds === 0) {
+    if (restSeconds === 0 && !restDoneRef.current) {
+      restDoneRef.current = true;
+      alertRestDone();
       const t = setTimeout(() => setRestSeconds(null), 8000);
       return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restSeconds]);
 
   const persist = (next) => {
     setLogs(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch (e) {
-      setError("No se pudo guardar. Intenta de nuevo.");
-    }
+    saveUserKind(userId, "logs", next);
   };
 
   const persistSupps = (next) => {
     setSupps(next);
-    try {
-      localStorage.setItem(SUPP_KEY, JSON.stringify(next));
-    } catch (e) {
-      setError("No se pudo guardar. Intenta de nuevo.");
-    }
+    saveUserKind(userId, "supps", next);
   };
 
   const persistWeights = (next) => {
     setWeights(next);
-    try {
-      localStorage.setItem(WEIGHT_KEY, JSON.stringify(next));
-    } catch (e) {
-      setError("No se pudo guardar. Intenta de nuevo.");
-    }
+    saveUserKind(userId, "weights", next);
   };
 
   const addWeight = () => {
@@ -202,8 +188,9 @@ export default function WorkoutTracker() {
       return;
     }
     setError("");
-    const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), weight: w, date: new Date().toISOString() };
+    const entry = { id: genId(), weight: w, date: new Date().toISOString() };
     persistWeights([entry, ...weights]);
+    enqueueUpsert(userId, "weights", entry);
     setShowWeightModal(false);
     setWeightInput("");
     try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
@@ -226,14 +213,15 @@ export default function WorkoutTracker() {
       return false;
     }
     const entry = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      id: genId(),
       exercise: exName,
       weight: weightNum,
       reps: repsNum,
       date: new Date().toISOString(),
     };
     persist([entry, ...logs]);
-    setRestSeconds(REST_SECONDS);
+    enqueueUpsert(userId, "logs", entry);
+    startRest();
     return true;
   };
 
@@ -251,6 +239,7 @@ export default function WorkoutTracker() {
 
   const deleteLog = (id) => {
     persist(logs.filter((l) => l.id !== id));
+    enqueueDeletion(userId, "logs", id);
   };
 
   const addSupplement = () => {
@@ -261,16 +250,18 @@ export default function WorkoutTracker() {
     }
     setError("");
     const entry = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      id: genId(),
       type: suppType,
       amount: amt,
       date: new Date().toISOString(),
     };
     persistSupps([entry, ...supps]);
+    enqueueUpsert(userId, "supps", entry);
   };
 
   const deleteSupp = (id) => {
     persistSupps(supps.filter((s) => s.id !== id));
+    enqueueDeletion(userId, "supps", id);
   };
 
   const exerciseNames = useMemo(() => {
@@ -395,7 +386,7 @@ export default function WorkoutTracker() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldPromptWeight]);
 
-  const suggestedDay = ROUTINE_DAYS[trainedDatesSorted.length % 4].id;
+  const suggestedDay = ROUTINE_DAYS[trainedDatesSorted.length % ROUTINE_DAYS.length].id;
   useEffect(() => {
     setActiveDay(suggestedDay);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -490,9 +481,9 @@ export default function WorkoutTracker() {
             <span style={styles.restLabel}>Descanso · {restMM}:{restSS}</span>
           )}
           {restSeconds !== 0 && (
-            <button onClick={() => setRestSeconds((s) => (s || 0) + 30)} style={styles.restBtn}>+30s</button>
+            <button onClick={() => addRest(30)} style={styles.restBtn}>+30s</button>
           )}
-          <button onClick={() => setRestSeconds(null)} style={styles.restCloseBtn} aria-label="Cerrar">
+          <button onClick={stopRest} style={styles.restCloseBtn} aria-label="Cerrar">
             <X size={15} color="#FFFFFF" />
           </button>
         </div>
@@ -533,8 +524,12 @@ export default function WorkoutTracker() {
         <div style={styles.headerTop}>
           <Dumbbell size={20} color="#0A84FF" strokeWidth={2.4} />
           <span style={styles.eyebrow}>ENTRENAMIENTO</span>
+          <button onClick={onSwitchProfile} style={styles.switchBtn} aria-label="Cambiar perfil">
+            <Users size={15} color="#0A84FF" />
+            <span>Cambiar</span>
+          </button>
         </div>
-        <h1 style={styles.title}>Hola, Juan David</h1>
+        <h1 style={styles.title}>Hola, {(profile.name || "Atleta").split(" ")[0]}</h1>
         <div style={styles.statRow}>
           <div style={styles.statChip}><span style={styles.statNum}>{trainedDateSet.size}</span><span style={styles.statLabel}>días</span></div>
           <div style={styles.statChip}><span style={styles.statNum}>{logs.length}</span><span style={styles.statLabel}>series</span></div>
@@ -959,6 +954,7 @@ const styles = {
 
   header: { padding: "24px 20px 18px", background: "linear-gradient(180deg, #EAF3FF 0%, #FFFFFF 100%)" },
   headerTop: { display: "flex", alignItems: "center", gap: 7, marginBottom: 6 },
+  switchBtn: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "#EAF3FF", border: "none", borderRadius: 999, color: "#0A84FF", fontSize: 12, fontWeight: 700, padding: "6px 12px", cursor: "pointer" },
   eyebrow: { fontSize: 12, letterSpacing: 1.5, color: "#8E8E93", fontWeight: 600 },
   title: { fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: "0 0 16px", color: "#000000" },
   statRow: { display: "flex", gap: 10 },

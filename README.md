@@ -1,6 +1,44 @@
 # Entrenamiento — Juan David
 
-App de seguimiento de entrenamiento: rutina diaria, registro de series, progreso, peso corporal mensual, calendario de días entrenados, suplementos y guía de ejercicios.
+App de seguimiento de entrenamiento: **multiusuario** (perfiles sin contraseña), rutina
+personalizada según objetivo/nivel/días, registro de series, progreso, peso corporal mensual,
+calendario de días entrenados, suplementos y guía de ejercicios.
+
+## Arquitectura
+
+- **Frontend:** React + Vite (PWA). Funciona **offline** (local-first con `localStorage`).
+- **Backend:** Vercel Serverless Functions en `/api` (`users`, `sync`).
+- **Base de datos:** Neon (Postgres). Cada perfil y sus registros se guardan en Neon y se
+  **sincronizan** cuando hay conexión (ideal para el gym con señal intermitente).
+
+### Perfiles y personalización
+- Onboarding sin contraseña: eliges un perfil o creas uno con nombre, sexo, edad, altura, peso,
+  nivel y objetivo + días por semana.
+- La rutina se **genera** según los días/semana (split de 3 a 6 días) y ajusta reps y descanso
+  según el objetivo (fuerza / hipertrofia / perder grasa / mantener) y el nivel.
+
+### Temporizador de descanso
+- Arranca solo al registrar cada serie, con duración según tu objetivo.
+- Al terminar el descanso: vibra, suena y manda notificación (si diste permiso).
+- Nota: por ser una web no puede abrir el reloj nativo del iPhone; el aviso funciona mientras la
+  app está abierta o en segundo plano reciente.
+
+## Configuración de la base de datos (Neon)
+
+1. La cadena de conexión va en la variable de entorno **`DATABASE_URL`** (nunca en el código).
+   - **Local:** copia `.env.example` a `.env.local` y pon tu cadena de Neon.
+   - **Vercel:** Project → Settings → Environment Variables → agrega `DATABASE_URL` (todos los
+     entornos) con la cadena *pooled* de Neon.
+2. Crea las tablas una vez:
+   ```bash
+   npm install
+   npm run db:setup
+   ```
+   > ⚠️ Seguridad: si tu cadena de conexión se expuso alguna vez, **rota la contraseña** en el
+   > panel de Neon y actualiza `DATABASE_URL`.
+
+> Nota: no hay autenticación por diseño (cualquiera con la URL puede elegir un perfil). Es como
+> un dispositivo compartido. Se puede añadir un PIN por perfil más adelante.
 
 ## Peso corporal y notificaciones
 
