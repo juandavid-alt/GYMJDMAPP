@@ -55,7 +55,7 @@ const GUIDE = [
 // Día 1 = Tracción, Día 2 = Empuje (intercambiados a pedido)
 const ROUTINE_DAYS = [
   {
-    id: 1, title: "Tracción", subtitle: "Espalda · Bíceps", color: "#007AFF",
+    id: 1, title: "Tracción", subtitle: "Espalda · Bíceps", color: "#32ADE6",
     exercises: [
       { name: "Dominadas", sets: 4, reps: "8-10" },
       { name: "Remo con barra", sets: 4, reps: "8-10" },
@@ -465,7 +465,7 @@ export default function WorkoutTracker() {
         @keyframes toastIn { from { opacity: 0; transform: translate(-50%, -14px);} to { opacity: 1; transform: translate(-50%, 0);} }
         button { font-family: inherit; -webkit-appearance: none; }
         input, select { font-family: inherit; }
-        input:focus, select:focus { outline: none; border-color: #FF9500 !important; }
+        input:focus, select:focus { outline: none; border-color: #0A84FF !important; }
         .pill-btn { transition: transform 0.15s ease, background 0.15s ease; }
         .pill-btn:active { transform: scale(0.96); }
         .ex-card { transition: background 0.15s ease; }
@@ -477,7 +477,7 @@ export default function WorkoutTracker() {
             <svg width="34" height="34" viewBox="0 0 34 34">
               <circle cx="17" cy="17" r="14.5" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="3" />
               <circle
-                cx="17" cy="17" r="14.5" fill="none" stroke={restSeconds === 0 ? "#34C759" : "#FF9500"} strokeWidth="3"
+                cx="17" cy="17" r="14.5" fill="none" stroke={restSeconds === 0 ? "#34C759" : "#0A84FF"} strokeWidth="3"
                 strokeDasharray={2 * Math.PI * 14.5} strokeDashoffset={2 * Math.PI * 14.5 * (1 - restPct)}
                 strokeLinecap="round" transform="rotate(-90 17 17)" style={{ transition: "stroke-dashoffset 1s linear" }}
               />
@@ -501,7 +501,7 @@ export default function WorkoutTracker() {
       {showWeightModal && (
         <div style={styles.modalOverlay} className="fade-in">
           <div style={styles.modalCard}>
-            <Scale size={30} color="#FF9500" />
+            <Scale size={30} color="#0A84FF" />
             <div style={styles.modalTitle}>
               {latestWeight ? "Actualiza tu peso" : "Registra tu peso inicial"}
             </div>
@@ -520,7 +520,7 @@ export default function WorkoutTracker() {
               autoFocus
             />
             {error && <div style={styles.errorText}>{error}</div>}
-            <button onClick={addWeight} style={{ ...styles.addBtn, background: "#FF9500", marginTop: 14 }}>
+            <button onClick={addWeight} style={{ ...styles.addBtn, background: ACCENT_GRAD, marginTop: 14 }}>
               <Check size={17} strokeWidth={3} />
               GUARDAR
             </button>
@@ -531,7 +531,7 @@ export default function WorkoutTracker() {
 
       <header style={styles.header}>
         <div style={styles.headerTop}>
-          <Dumbbell size={20} color="#FF9500" strokeWidth={2.4} />
+          <Dumbbell size={20} color="#0A84FF" strokeWidth={2.4} />
           <span style={styles.eyebrow}>ENTRENAMIENTO</span>
         </div>
         <h1 style={styles.title}>Hola, Juan David</h1>
@@ -660,7 +660,7 @@ export default function WorkoutTracker() {
 
               {error && <div style={styles.errorText}>{error}</div>}
 
-              <button onClick={addLog} style={{ ...styles.addBtn, background: "#FF9500" }}>
+              <button onClick={addLog} style={{ ...styles.addBtn, background: ACCENT_GRAD }}>
                 <Plus size={18} strokeWidth={3} />
                 REGISTRAR SERIE
               </button>
@@ -708,9 +708,9 @@ export default function WorkoutTracker() {
                     )}
                   </div>
                 </div>
-                <Scale size={26} color="#FF9500" />
+                <Scale size={26} color="#0A84FF" />
               </div>
-              <button onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : ""); setShowWeightModal(true); }} style={{ ...styles.addBtn, background: "#FF9500", marginTop: 14 }}>
+              <button onClick={() => { setWeightInput(latestWeight ? String(latestWeight.weight) : ""); setShowWeightModal(true); }} style={{ ...styles.addBtn, background: ACCENT_GRAD, marginTop: 14 }}>
                 <Plus size={17} strokeWidth={3} />
                 {latestWeight ? "ACTUALIZAR PESO" : "REGISTRAR PESO"}
               </button>
@@ -728,7 +728,7 @@ export default function WorkoutTracker() {
             {weightChartData.length >= 2 && (
               <div style={{ ...styles.chartCard, marginBottom: 22 }}>
                 <div style={styles.chartHeader}>
-                  <TrendingUp size={16} color="#FF9500" />
+                  <TrendingUp size={16} color="#0A84FF" />
                   <span style={styles.chartTitle}>Evolución de peso</span>
                 </div>
                 <ResponsiveContainer width="100%" height={180}>
@@ -736,8 +736,8 @@ export default function WorkoutTracker() {
                     <CartesianGrid stroke="#EDEDED" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="date" stroke="#8E8E93" fontSize={11} tickLine={false} axisLine={{ stroke: "#EDEDED" }} />
                     <YAxis stroke="#8E8E93" fontSize={11} tickLine={false} axisLine={false} domain={["dataMin - 1", "dataMax + 1"]} />
-                    <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid #FF9500", borderRadius: 10, fontSize: 12 }} labelStyle={{ color: "#000000" }} itemStyle={{ color: "#FF9500" }} />
-                    <Line type="monotone" dataKey="peso" stroke="#FF9500" strokeWidth={2.5} dot={{ r: 4, fill: "#FF9500" }} activeDot={{ r: 6 }} />
+                    <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid #0A84FF", borderRadius: 10, fontSize: 12 }} labelStyle={{ color: "#000000" }} itemStyle={{ color: "#0A84FF" }} />
+                    <Line type="monotone" dataKey="peso" stroke="#0A84FF" strokeWidth={2.5} dot={{ r: 4, fill: "#0A84FF" }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -765,7 +765,7 @@ export default function WorkoutTracker() {
                 {selectedExercise && (
                   <div style={styles.chartCard}>
                     <div style={styles.chartHeader}>
-                      <TrendingUp size={16} color="#FF9500" />
+                      <TrendingUp size={16} color="#0A84FF" />
                       <span style={styles.chartTitle}>{selectedExercise}</span>
                     </div>
                     {chartData.length < 2 ? (
@@ -776,8 +776,8 @@ export default function WorkoutTracker() {
                           <CartesianGrid stroke="#EDEDED" strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="date" stroke="#8E8E93" fontSize={11} tickLine={false} axisLine={{ stroke: "#EDEDED" }} />
                           <YAxis stroke="#8E8E93" fontSize={11} tickLine={false} axisLine={false} />
-                          <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid #FF9500", borderRadius: 10, fontSize: 12 }} labelStyle={{ color: "#000000" }} itemStyle={{ color: "#FF9500" }} />
-                          <Line type="monotone" dataKey="peso" stroke="#FF9500" strokeWidth={2.5} dot={{ r: 4, fill: "#FF9500" }} activeDot={{ r: 6 }} />
+                          <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid #0A84FF", borderRadius: 10, fontSize: 12 }} labelStyle={{ color: "#000000" }} itemStyle={{ color: "#0A84FF" }} />
+                          <Line type="monotone" dataKey="peso" stroke="#0A84FF" strokeWidth={2.5} dot={{ r: 4, fill: "#0A84FF" }} activeDot={{ r: 6 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     )}
@@ -792,7 +792,7 @@ export default function WorkoutTracker() {
           <div className="fade-in">
             <div style={styles.card}>
               <div style={styles.chartHeader}>
-                <Calendar size={16} color="#FF9500" />
+                <Calendar size={16} color="#0A84FF" />
                 <span style={styles.chartTitle}>{new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" })}</span>
                 <span style={{ ...styles.logDate, marginLeft: "auto" }}>{thisMonthCount} días este mes</span>
               </div>
@@ -814,11 +814,11 @@ export default function WorkoutTracker() {
               <div key={key} style={{ marginBottom: 14 }}>
                 <div style={styles.monthLabel}>
                   {new Date(key + "-01").toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
-                  <span style={{ color: "#FF9500", marginLeft: 8 }}>· {dates.length} días</span>
+                  <span style={{ color: "#0A84FF", marginLeft: 8 }}>· {dates.length} días</span>
                 </div>
                 {dates.map((d) => (
                   <div key={d} style={styles.dayRow}>
-                    <Flame size={14} color="#FF9500" />
+                    <Flame size={14} color="#0A84FF" />
                     <span>{new Date(d + "T00:00:00").toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "short" })}</span>
                   </div>
                 ))}
@@ -831,7 +831,7 @@ export default function WorkoutTracker() {
           <div className="fade-in">
             <div style={styles.suppSummaryRow}>
               <div style={{ ...styles.suppSummaryCard, background: "#EAF2FF" }}>
-                <Droplet size={18} color="#007AFF" />
+                <Droplet size={18} color="#32ADE6" />
                 <div style={styles.suppSummaryNum}>{todayProtein}<small>g</small></div>
                 <div style={styles.suppSummaryLabel}>Proteína hoy</div>
               </div>
@@ -858,7 +858,7 @@ export default function WorkoutTracker() {
               <div style={styles.fieldLabel}>CANTIDAD (GRAMOS)</div>
               <input type="number" inputMode="decimal" value={suppAmount} onChange={(e) => setSuppAmount(e.target.value)} style={styles.input} />
               {error && <div style={styles.errorText}>{error}</div>}
-              <button onClick={addSupplement} style={{ ...styles.addBtn, background: suppType === "Proteína" ? "#007AFF" : "#AF52DE" }}>
+              <button onClick={addSupplement} style={{ ...styles.addBtn, background: suppType === "Proteína" ? "#32ADE6" : "#AF52DE" }}>
                 <Plus size={18} strokeWidth={3} />
                 REGISTRAR CONSUMO
               </button>
@@ -871,12 +871,12 @@ export default function WorkoutTracker() {
                 <div style={styles.monthLabel}>{new Date(key + "-01").toLocaleDateString("es-ES", { month: "long", year: "numeric" })}</div>
                 {entries.map((s) => (
                   <div key={s.id} style={styles.logRow} className="row-enter">
-                    {s.type === "Proteína" ? <Droplet size={16} color="#007AFF" /> : <Pill size={16} color="#AF52DE" />}
+                    {s.type === "Proteína" ? <Droplet size={16} color="#32ADE6" /> : <Pill size={16} color="#AF52DE" />}
                     <div style={styles.logMain}>
                       <div style={styles.logExercise}>{s.type}</div>
                       <div style={styles.logDate}>{new Date(s.date).toLocaleDateString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
                     </div>
-                    <span style={{ ...styles.logWeight, color: s.type === "Proteína" ? "#007AFF" : "#AF52DE" }}>{s.amount}<small>g</small></span>
+                    <span style={{ ...styles.logWeight, color: s.type === "Proteína" ? "#32ADE6" : "#AF52DE" }}>{s.amount}<small>g</small></span>
                     <button onClick={() => deleteSupp(s.id)} style={styles.deleteBtn} aria-label="Eliminar">
                       <Trash2 size={15} />
                     </button>
@@ -920,8 +920,8 @@ export default function WorkoutTracker() {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} style={styles.tabBarBtn}>
-              <Icon size={21} strokeWidth={active ? 2.4 : 2} color={active ? "#FF9500" : "#8E8E93"} />
-              <span style={{ ...styles.tabBarLabel, color: active ? "#FF9500" : "#8E8E93" }}>{t.label}</span>
+              <Icon size={21} strokeWidth={active ? 2.4 : 2} color={active ? "#0A84FF" : "#8E8E93"} />
+              <span style={{ ...styles.tabBarLabel, color: active ? "#0A84FF" : "#8E8E93" }}>{t.label}</span>
             </button>
           );
         })}
@@ -932,6 +932,8 @@ export default function WorkoutTracker() {
 
 const SYSTEM_FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif";
 const MONO_FONT = "'SF Mono', ui-monospace, Menlo, Consolas, monospace";
+const ACCENT = "#0A84FF";
+const ACCENT_GRAD = "linear-gradient(135deg, #3AA0FF 0%, #0A84FF 55%, #0A5BE0 100%)";
 
 const styles = {
   app: {
@@ -955,13 +957,13 @@ const styles = {
   restBtn: { background: "rgba(255,255,255,0.15)", border: "none", color: "#FFFFFF", fontSize: 11.5, fontWeight: 700, borderRadius: 999, padding: "5px 9px", cursor: "pointer" },
   restCloseBtn: { background: "none", border: "none", cursor: "pointer", padding: 3, display: "flex" },
 
-  header: { padding: "24px 20px 18px" },
+  header: { padding: "24px 20px 18px", background: "linear-gradient(180deg, #EAF3FF 0%, #FFFFFF 100%)" },
   headerTop: { display: "flex", alignItems: "center", gap: 7, marginBottom: 6 },
   eyebrow: { fontSize: 12, letterSpacing: 1.5, color: "#8E8E93", fontWeight: 600 },
   title: { fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: "0 0 16px", color: "#000000" },
   statRow: { display: "flex", gap: 10 },
   statChip: { background: "#F2F2F7", borderRadius: 12, padding: "8px 14px", display: "flex", alignItems: "baseline", gap: 6 },
-  statNum: { fontFamily: MONO_FONT, fontWeight: 700, fontSize: 16, color: "#FF9500" },
+  statNum: { fontFamily: MONO_FONT, fontWeight: 700, fontSize: 16, color: "#0A84FF" },
   statLabel: { fontSize: 13, color: "#8E8E93" },
   main: { padding: "4px 20px 20px" },
   loading: { color: "#8E8E93", textAlign: "center", padding: 40, fontSize: 14 },
@@ -995,10 +997,10 @@ const styles = {
   fieldLabel: { fontSize: 11.5, letterSpacing: 1, color: "#8E8E93", fontWeight: 600, marginBottom: 6, marginTop: 12 },
   select: { width: "100%", background: "#FFFFFF", border: "1px solid #E5E5EA", borderRadius: 12, color: "#000000", padding: "12px 12px", fontSize: 15 },
   input: { width: "100%", background: "#FFFFFF", border: "1px solid #E5E5EA", borderRadius: 12, color: "#000000", padding: "12px 12px", fontSize: 15, fontFamily: MONO_FONT },
-  linkBtn: { background: "none", border: "none", color: "#FF9500", fontSize: 12.5, marginTop: 8, cursor: "pointer", padding: 0, fontWeight: 600 },
+  linkBtn: { background: "none", border: "none", color: "#0A84FF", fontSize: 12.5, marginTop: 8, cursor: "pointer", padding: 0, fontWeight: 600 },
   twoCol: { display: "flex", gap: 12 },
   errorText: { color: "#FF3B30", fontSize: 12.5, marginTop: 10 },
-  addBtn: { width: "100%", marginTop: 18, border: "none", borderRadius: 12, color: "#FFFFFF", fontWeight: 700, fontSize: 14, letterSpacing: 0.3, padding: "13px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" },
+  addBtn: { width: "100%", marginTop: 18, border: "none", borderRadius: 12, color: "#FFFFFF", fontWeight: 700, fontSize: 14, letterSpacing: 0.3, padding: "13px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", boxShadow: "0 6px 18px rgba(10,132,255,0.30)" },
 
   empty: { color: "#8E8E93", fontSize: 13.5, padding: "16px 0", lineHeight: 1.5 },
   logRow: { display: "flex", alignItems: "center", background: "#F7F7F8", border: "1px solid #ECECEC", borderRadius: 14, padding: "12px 14px", marginBottom: 8, gap: 10 },
@@ -1006,17 +1008,17 @@ const styles = {
   logExercise: { fontSize: 15, color: "#000000", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   logDate: { fontSize: 11.5, color: "#8E8E93" },
   logStats: { display: "flex", alignItems: "baseline", gap: 4 },
-  logWeight: { fontFamily: MONO_FONT, fontWeight: 700, fontSize: 16, color: "#FF9500" },
+  logWeight: { fontFamily: MONO_FONT, fontWeight: 700, fontSize: 16, color: "#0A84FF" },
   logReps: { fontFamily: MONO_FONT, fontSize: 13, color: "#8E8E93" },
   deleteBtn: { background: "none", border: "none", color: "#C7C7CC", cursor: "pointer", padding: 4 },
 
   prGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 },
   prCard: { background: "#F7F7F8", border: "1px solid #ECECEC", borderRadius: 16, padding: "14px 14px", textAlign: "left", cursor: "pointer" },
-  prCardActive: { border: "1px solid #FF9500", background: "#FFF4E5" },
+  prCardActive: { border: "1px solid #0A84FF", background: "#E8F1FF" },
   prName: { fontSize: 12.5, color: "#8E8E93", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   prValue: { fontFamily: MONO_FONT, fontWeight: 700, fontSize: 22, color: "#000000" },
   prUnit: { fontSize: 12, color: "#8E8E93", marginLeft: 2 },
-  prReps: { fontSize: 11.5, color: "#FF9500", marginTop: 4 },
+  prReps: { fontSize: 11.5, color: "#0A84FF", marginTop: 4 },
   chartCard: { background: "#F7F7F8", border: "1px solid #ECECEC", borderRadius: 18, padding: 18 },
   chartHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
   chartTitle: { fontSize: 15, fontWeight: 600, color: "#000000", textTransform: "capitalize" },
@@ -1026,7 +1028,7 @@ const styles = {
   calendarGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 },
   calCell: { aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, color: "#3A3A3C", fontFamily: MONO_FONT, background: "#FFFFFF", border: "1px solid #ECECEC", borderRadius: 8 },
   calCellEmpty: { aspectRatio: "1" },
-  calCellTrained: { background: "#FF9500", color: "#FFFFFF", fontWeight: 700, border: "1px solid #FF9500" },
+  calCellTrained: { background: "#0A84FF", color: "#FFFFFF", fontWeight: 700, border: "1px solid #0A84FF" },
   monthLabel: { fontSize: 14, color: "#000000", fontWeight: 600, marginBottom: 6, textTransform: "capitalize" },
   dayRow: { display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "#3A3A3C", padding: "6px 0", textTransform: "capitalize" },
 
@@ -1040,12 +1042,12 @@ const styles = {
 
   filterRow: { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 14, marginBottom: 4 },
   filterChip: { background: "#F2F2F7", border: "none", borderRadius: 999, color: "#3A3A3C", fontSize: 12.5, fontWeight: 600, padding: "7px 15px", whiteSpace: "nowrap", cursor: "pointer", flexShrink: 0 },
-  filterChipActive: { background: "#FF9500", color: "#FFFFFF" },
+  filterChipActive: { background: "#0A84FF", color: "#FFFFFF" },
   guideCard: { background: "#F7F7F8", border: "1px solid #ECECEC", borderRadius: 16, padding: 15, marginBottom: 10 },
   guideTop: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
   guideName: { fontSize: 16, fontWeight: 600, color: "#000000" },
-  guideGrupo: { fontSize: 11.5, color: "#FF9500", fontWeight: 600, marginTop: 2 },
-  videoBtn: { display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, color: "#FF9500", border: "1px solid #FF9500", borderRadius: 999, padding: "6px 11px", textDecoration: "none", flexShrink: 0, width: "fit-content" },
+  guideGrupo: { fontSize: 11.5, color: "#0A84FF", fontWeight: 600, marginTop: 2 },
+  videoBtn: { display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, color: "#0A84FF", border: "1px solid #0A84FF", borderRadius: 999, padding: "6px 11px", textDecoration: "none", flexShrink: 0, width: "fit-content" },
   guideEquipo: { display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#8E8E93", marginTop: 9 },
   guideCue: { fontSize: 13.5, color: "#3A3A3C", marginTop: 7, lineHeight: 1.55 },
 
