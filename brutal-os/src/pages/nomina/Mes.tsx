@@ -66,6 +66,7 @@ export default function Mes() {
   const cambios = empleados.filter((x) => Math.abs(variacion(x.f.empleadoId, x.c.costoTotal) ?? 0) > pc.params.variacionAlertaPct);
   const conAlertas = pc.filas.filter((x) => x.c.alertas.length);
   const cargadas = per.filas.filter((f) => f.cargada).length;
+  const sinSalario = db.empleados.filter((e) => e.estatus === "ACTIVO" && !per.filas.some((f) => f.empleadoId === e.id) && !db.salarios.some((s) => s.empleadoId === e.id));
   const anterior = mesAnterior(per.anio, per.mes);
   const siguiente = mesSiguiente(per.anio, per.mes);
   const existeSig = db.periodos.some((p) => p.id === mesId(siguiente.anio, siguiente.mes));
@@ -159,6 +160,17 @@ export default function Mes() {
         <Kpi label="Planilla" value={pesosCortos(pc.empleados.totalPlanilla)} />
         <Kpi label="Costo empresa" value={pesosCortos(pc.empleados.costoTotal)} delta={d(pc.empleados.costoTotal, pcPrev?.empleados.costoTotal)} invert deltaLabel="vs ant." />
       </div>
+
+      {sinSalario.length > 0 && (
+        <div className="card" style={{ marginTop: 16, background: "color-mix(in srgb, var(--orange) 12%, var(--bg-elev))" }}>
+          <div className="row wrap"><TriangleAlert color="var(--orange)" />
+            <div className="grow"><b>{sinSalario.length} {sinSalario.length === 1 ? "persona activa no tiene" : "personas activas no tienen"} salario registrado</b>
+              <div className="footnote">{sinSalario.map((e) => `${e.id} ${titulo(e.nombreCompleto)} (${titulo(e.cargo)})`).join(" · ")}. No entran en la nómina hasta definir su base: crea una propuesta en el simulador.</div>
+            </div>
+            <button className="btn sm" onClick={() => nav(`/nomina/simulador?empleado=${sinSalario[0].id}`)}>Definir salario</button>
+          </div>
+        </div>
+      )}
 
       {(conAlertas.length > 0 || cambios.length > 0) && (
         <div className="grid g2" style={{ marginTop: 16 }}>

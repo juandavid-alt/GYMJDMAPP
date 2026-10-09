@@ -9,7 +9,7 @@ import {
   renovar as calcularRenovacion,
   siguienteId,
 } from "../domain/empleados";
-import { diaHabil, diasVigentesEnMes, finDeMes, hoy, mesAnterior, mesId, mesSiguiente } from "../domain/fechas";
+import { diaHabil, diasVigentesEnMes, finDeMes, hoy, mesId, mesSiguiente } from "../domain/fechas";
 import { calcularFila, NOVEDADES_VACIAS, sumar } from "../domain/nomina";
 import type {
   Archivo,
@@ -35,8 +35,8 @@ import { borrarArchivo, guardarArchivo } from "./files";
 // navegable sin backend. En producción estas mismas operaciones se ejecutan contra
 // PostgreSQL (Supabase) — ver supabase/schema.sql — con RLS por rol.
 
-const KEY = "brutal-os-db-v1";
-const KEY_SESION = "brutal-os-sesion-v1";
+const KEY = "brutal-os-db-v2";
+const KEY_SESION = "brutal-os-sesion-v2";
 
 export interface Sesion {
   rol: Rol;
@@ -68,7 +68,7 @@ function cargarSesion(): Sesion {
   } catch {
     /* noop */
   }
-  return { rol: "ADMINISTRADOR", usuario: "Administrador", empleadoId: "LB0018" };
+  return { rol: "ADMINISTRADOR", usuario: "Administrador", empleadoId: "LB0004" };
 }
 
 function persistir() {
@@ -292,6 +292,17 @@ export async function retirarEmpleado(
     e.examenEgreso = { estatus: "PENDIENTE CITAR", desde: hoy() };
     log(d, { modulo: "EMPLEADOS", evento: "RETIRO", empleadoId: id, nombre: e.nombreCompleto, campo: "estatus", anterior: "ACTIVO", nuevo: "RETIRADO", detalle: `${r.causal} · salida ${r.fechaSalida}` });
     log(d, { modulo: "EMPLEADOS", evento: "EXAMEN DE EGRESO", empleadoId: id, nombre: e.nombreCompleto, nuevo: "PENDIENTE CITAR" });
+  });
+}
+
+export function actualizarRetiro(id: string, patch: Partial<NonNullable<Empleado["retiro"]>>) {
+  mutar((d) => {
+    const e = d.empleados.find((x) => x.id === id)!;
+    if (!e.retiro) return;
+    for (const [k, v] of Object.entries(patch)) {
+      log(d, { modulo: "EMPLEADOS", evento: "RETIRO ACTUALIZADO", empleadoId: id, nombre: e.nombreCompleto, campo: k, anterior: String(e.retiro[k as keyof typeof e.retiro] ?? ""), nuevo: String(v) });
+    }
+    Object.assign(e.retiro, patch);
   });
 }
 
@@ -731,41 +742,11 @@ function inicializar(): DB {
   const d = crearSeed();
   const ref = hoy();
   const { anio, mes } = { anio: Number(ref.slice(0, 4)), mes: Number(ref.slice(5, 7)) };
-  // Meses cerrados del año: generados, cargados, aprobados y pagados
-  let cur = { anio, mes: 1 };
-  while (cur.anio < anio || cur.mes < mes) {
-    const per: PeriodoNomina = { id: mesId(cur.anio, cur.mes), anio: cur.anio, mes: cur.mes, estado: "ENVIADO A PAGOS", filas: construirFilas(d, cur.anio, cur.mes), reaperturas: [], aprobadoPor: "Administrador", aprobadoEn: `${finDeMes(cur.anio, cur.mes)}T16:00:00.000Z` };
-    per.filas.forEach((f, i) => {
-      f.cargada = true;
-      if ((i + cur.mes) % 9 === 0) f.novedades.hed = 6;
-      if ((i + cur.mes) % 13 === 0) f.novedades.diasIncapacidad = 2;
-      if ((i * cur.mes) % 17 === 5) f.novedades.bonificacionNoSalarial = 300_000;
-    });
-    d.periodos.push(per);
-    generarPagos(d, per);
-    d.cuentasPorPagar.filter((c) => c.periodoId === per.id).forEach((c) => {
-      c.estado = "PAGADO";
-      c.fechaPago = c.fechaLimite;
-    });
-    cur = mesSiguiente(cur.anio, cur.mes);
+  // Solo la nómina del mes en curso, en BORRADOR: no se inventan meses anteriores.
+  if (d.empleados.length) {
+    d.periodos.push({ id: mesId(anio, mes), anio, mes, estado: "BORRADOR", filas: construirFilas(d, anio, mes), reaperturas: [] });
+    d.historial.unshift({ id: nuevoId(), ts: new Date().toISOString(), usuario: "Sistema", modulo: "NOMINA", evento: "NÓMINA GENERADA", detalle: mesId(anio, mes) });
   }
-  // Prima del primer semestre pagada en junio desde la cuenta de provisiones
-  const primaSem1 = d.periodos
-    .filter((p) => p.anio === anio && p.mes <= 6)
-    .reduce((s, p) => s + sumar(p.filas.map((f) => calcularFila(f, parametrosDe(d, p.anio)))).prima, 0);
-  if (mes > 6) d.provisiones.push({ id: nuevoId(), fecha: `${anio}-06-30`, tipo: "PAGO PRIMA", valor: -Math.round(primaSem1), detalle: "Prima de servicios junio" });
-  // Mes en curso: borrador con algunas novedades
-  const per: PeriodoNomina = { id: mesId(anio, mes), anio, mes, estado: "BORRADOR", filas: construirFilas(d, anio, mes), reaperturas: [] };
-  per.filas.forEach((f, i) => {
-    if (i % 4 === 0) f.cargada = true;
-    if (i === 5) f.novedades.hed = 8;
-    if (i === 9) f.novedades.diasIncapacidad = 3;
-    if (i === 12) f.novedades.diasVacaciones = 5;
-    if (i === 14) f.novedades.prestamos = 150_000;
-  });
-  d.periodos.push(per);
-  const prev = mesAnterior(anio, mes);
-  d.historial.unshift({ id: nuevoId(), ts: new Date().toISOString(), usuario: "Sistema", modulo: "NOMINA", evento: "NÓMINA GENERADA", detalle: `${mesId(anio, mes)} (mes anterior ${mesId(prev.anio, prev.mes)} cerrado)` });
   d.historial.sort((a, b) => (a.ts < b.ts ? 1 : -1));
   return d;
 }
@@ -781,7 +762,7 @@ export function importarEmpleados(filas: Empleado[]) {
       const i = d.empleados.findIndex((x) => x.id === e.id || x.numeroDocumento === e.numeroDocumento);
       if (i >= 0) {
         const antes = d.empleados[i];
-        const despues = { ...e, id: antes.id, archivos: antes.archivos, examen: antes.examen };
+        const despues = { ...e, id: antes.id, archivos: antes.archivos, examen: antes.examen, retiro: antes.retiro ?? e.retiro, examenEgreso: antes.examenEgreso ?? e.examenEgreso, autorizacionDatos: antes.autorizacionDatos || e.autorizacionDatos, autorizacionFecha: antes.autorizacionFecha || e.autorizacionFecha };
         d.empleados[i] = despues;
         d.historial.unshift(...diffEmpleado(antes, despues, sesion.usuario, nuevoId));
         actualizados++;

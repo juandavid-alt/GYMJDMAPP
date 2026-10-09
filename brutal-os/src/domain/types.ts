@@ -22,7 +22,8 @@ export type CausalRetiro =
   | "DESPIDO CON JUSTA CAUSA"
   | "DESPIDO SIN JUSTA CAUSA"
   | "MUTUO ACUERDO"
-  | "FIN DE PRESTACIÓN DE SERVICIOS";
+  | "FIN DE PRESTACIÓN DE SERVICIOS"
+  | "SIN REGISTRAR";
 
 export type Subcarpeta =
   | "Documentos personales"

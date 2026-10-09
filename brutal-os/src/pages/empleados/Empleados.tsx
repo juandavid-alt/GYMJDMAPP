@@ -468,7 +468,7 @@ function Retirados({ lista }: { lista: Empleado[] }) {
               <td>{e.tipoContrato}</td>
               <td className="num">{fecha(e.inicioContrato)}</td>
               <td className="num">{fecha(e.retiro?.fechaSalida)}</td>
-              <td>{titulo(e.retiro?.causal ?? "")}</td>
+              <td>{e.retiro?.causal === "SIN REGISTRAR" ? <Badge color="yellow" dot>Por registrar</Badge> : titulo(e.retiro?.causal ?? "")}</td>
               <td className="r">{e.retiro ? `$ ${e.retiro.valorLiquidacion.toLocaleString("es-CO")}` : "—"}</td>
               <td><EstatusBadge estatus={e.retiro?.estadoLiquidacion ?? ""} /></td>
               <td>{e.examenEgreso ? <EstatusBadge estatus={e.examenEgreso.estatus} /> : "—"}</td>

@@ -111,6 +111,10 @@ export function Simulador() {
       return { antes: calcBase(pl.base, pl.auxNoPrestPct, p), despues: calcBase(b, pl.auxNoPrestPct, p), baseAntes: pl.base, personas: n, area: pl.area, nombreCargo: pl.cargo };
     }
     const vacio = calcBase(0, 0, p);
+    if (modo === "AUMENTO_PERSONA" && emp) {
+      // persona sin salario registrado: se define su base desde cero
+      return { antes: { ...vacio, alertas: [] }, despues: calcBase(base || p.smmlv, null, p, { claseRiesgoArl: emp.claseRiesgoArl }), baseAntes: 0, personas: 1, area: emp.area, nombreCargo: emp.cargo };
+    }
     return { antes: { ...vacio, alertas: [] }, despues: calcBase(base || p.smmlv, null, p), baseAntes: 0, personas: 1, area: nuevaArea, nombreCargo: nuevoNombre.trim().toUpperCase() };
   }, [modo, emp, sal, pl, base, p, nuevaArea, nuevoNombre, db.empleados]);
 

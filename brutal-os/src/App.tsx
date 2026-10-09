@@ -146,7 +146,7 @@ function Shell() {
             )}
           </Routes>
           <div className="caption" style={{ textAlign: "center", marginTop: 48 }}>
-            Brutal OS · Modo demostración con datos ficticios · Tratamiento de datos conforme a la Ley 1581 de 2012
+            Brutal OS · Datos de la BBDD de LA BRUTAL · Documento y cuenta con solo los últimos 4 dígitos · Ley 1581 de 2012
           </div>
         </main>
       </div>

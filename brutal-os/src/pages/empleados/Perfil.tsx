@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   CalendarClock, Crown, Eye, EyeOff, FileText, Folder, Pencil, RefreshCw, Stethoscope, Undo2, UserMinus, Wallet, Banknote, TriangleAlert,
 } from "lucide-react";
-import { actualizarCondicionesSalario, actualizarLiquidacion, subirArchivo, useDB, useSesion } from "../../data/store";
+import { actualizarCondicionesSalario, actualizarLiquidacion, actualizarRetiro, subirArchivo, useDB, useSesion } from "../../data/store";
 import { calcPeriodo } from "../../data/selectors";
 import { ARCHIVOS, SUBCARPETAS } from "../../domain/catalogos";
 import { antiguedadMeses, duracionesPermitidas, estadoDocumentos } from "../../domain/empleados";
@@ -145,10 +145,17 @@ export default function Perfil() {
           {e.retiro && (
             <Card title="Retiro" action={<Wallet color="var(--red)" />}>
               <div className="list" style={{ boxShadow: "none" }}>
-                <div className="list-row flat"><span className="muted">Causal</span><b className="right">{titulo(e.retiro.causal)}</b></div>
+                <div className="list-row flat"><span className="muted">Causal</span>
+                  {propio ? <b className="right">{titulo(e.retiro.causal)}</b> : (
+                    <select className={`select sm right ${e.retiro.causal === "SIN REGISTRAR" ? "required-empty" : ""}`} style={{ width: 210 }} value={e.retiro.causal} onChange={(ev) => actualizarRetiro(e.id, { causal: ev.target.value as typeof e.retiro.causal })}>
+                      {e.retiro.causal === "SIN REGISTRAR" && <option>SIN REGISTRAR</option>}
+                      {db.listas.causalesRetiro.map((c) => <option key={c}>{c}</option>)}
+                    </select>
+                  )}
+                </div>
                 <div className="list-row flat"><span className="muted">Notificación</span><b className="right">{fecha(e.retiro.fechaNotificacion)}</b></div>
                 <div className="list-row flat"><span className="muted">Salida</span><b className="right">{fecha(e.retiro.fechaSalida)}</b></div>
-                <div className="list-row flat"><span className="muted">Liquidación</span><b className="right">{pesos(e.retiro.valorLiquidacion)}</b></div>
+                <div className="list-row flat"><span className="muted">Liquidación</span>{propio ? <b className="right">{pesos(e.retiro.valorLiquidacion)}</b> : <div className="right" style={{ width: 170 }}><MoneyInput value={e.retiro.valorLiquidacion} onChange={(n) => actualizarRetiro(e.id, { valorLiquidacion: n })} /></div>}</div>
                 <div className="list-row flat">
                   <span className="muted">Estado</span>
                   <span className="right">
