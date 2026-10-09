@@ -1,6 +1,8 @@
 // Modelo de dominio de Brutal OS. Refleja 1:1 las tablas de supabase/schema.sql.
 
-export type Rol = "ADMINISTRADOR" | "COORDINACION" | "EMPLEADO";
+import type { Cliente, ConfigIndice, Contrato, Factura, Gasto, NotaCredito, ParamsTributarios, Servicio } from "./facturacion";
+
+export type Rol = "ADMINISTRADOR" | "COORDINACION" | "CONTADORA" | "CONSULTA" | "EMPLEADO";
 
 export type Estatus = "ACTIVO" | "RETIRADO";
 export type TipoContrato = "FIJO" | "INDEFINIDO" | "PS";
@@ -139,7 +141,7 @@ export interface Historial {
   id: string;
   ts: string; // ISO datetime
   usuario: string;
-  modulo: "EMPLEADOS" | "NOMINA" | "CONFIGURACION";
+  modulo: "EMPLEADOS" | "NOMINA" | "CONFIGURACION" | "FACTURACION" | "CLIENTES" | "CARTERA" | "GASTOS" | "INDICE";
   evento: string; // INGRESO, RETIRO, RENOVACIÓN, CAMBIO, ...
   empleadoId?: string;
   nombre?: string;
@@ -322,6 +324,16 @@ export interface DB {
   provisiones: MovimientoProvision[];
   ingresos: IngresoMensual[];
   listas: ListasMaestras;
+  // Ciclo de facturación e Índice
+  clientes: Cliente[];
+  contratos: Contrato[];
+  facturas: Factura[];
+  notasCredito: NotaCredito[];
+  servicios: Servicio[];
+  tributarios: ParamsTributarios[];
+  gastos: Gasto[];
+  configIndice: ConfigIndice;
+  notasMigracion: string[];
 }
 
 export interface ListasMaestras {

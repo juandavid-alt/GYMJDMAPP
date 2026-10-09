@@ -11,6 +11,7 @@ import {
 } from "../domain/empleados";
 import { diaHabil, diasVigentesEnMes, finDeMes, hoy, mesId, mesSiguiente } from "../domain/fechas";
 import { calcularFila, NOVEDADES_VACIAS, sumar } from "../domain/nomina";
+import { programar } from "../domain/facturacion";
 import type {
   Archivo,
   CargoPlantilla,
@@ -35,7 +36,7 @@ import { borrarArchivo, guardarArchivo } from "./files";
 // navegable sin backend. En producción estas mismas operaciones se ejecutan contra
 // PostgreSQL (Supabase) — ver supabase/schema.sql — con RLS por rol.
 
-const KEY = "brutal-os-db-v2";
+const KEY = "brutal-os-db-v3";
 const KEY_SESION = "brutal-os-sesion-v2";
 
 export interface Sesion {
@@ -85,7 +86,7 @@ function emitir() {
   subs.forEach((f) => f());
 }
 
-function mutar(fn: (d: DB) => void) {
+export function mutar(fn: (d: DB) => void) {
   const copia = structuredClone(db);
   fn(copia);
   db = copia;
@@ -105,6 +106,10 @@ export function useSesion(): Sesion {
   return useSyncExternalStore(subscribe, () => sesion);
 }
 
+export function getSesion() {
+  return sesion;
+}
+
 export function getDB() {
   return db;
 }
@@ -114,7 +119,7 @@ export function setSesion(s: Partial<Sesion>) {
   emitir();
 }
 
-function log(d: DB, h: Omit<Historial, "id" | "ts" | "usuario">) {
+export function log(d: DB, h: Omit<Historial, "id" | "ts" | "usuario">) {
   d.historial.unshift({ id: nuevoId(), ts: new Date().toISOString(), usuario: sesion.usuario, ...h });
 }
 
@@ -742,6 +747,11 @@ function inicializar(): DB {
   const d = crearSeed();
   const ref = hoy();
   const { anio, mes } = { anio: Number(ref.slice(0, 4)), mes: Number(ref.slice(5, 7)) };
+  // Facturas programadas de los contratos vigentes desde el mes en curso
+  for (const c of d.contratos) {
+    const cli = d.clientes.find((x) => x.id === c.clienteId);
+    if (cli && c.estado !== "TERMINADO") d.facturas.push(...programar(c, cli, d.facturas, mesId(anio, mes), nuevoId, d.servicios));
+  }
   // Solo la nómina del mes en curso, en BORRADOR: no se inventan meses anteriores.
   if (d.empleados.length) {
     d.periodos.push({ id: mesId(anio, mes), anio, mes, estado: "BORRADOR", filas: construirFilas(d, anio, mes), reaperturas: [] });

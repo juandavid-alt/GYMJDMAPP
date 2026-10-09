@@ -1,4 +1,6 @@
 import { LISTAS_INICIALES, PARAMETROS_2026, PLANTILLA_INICIAL } from "../domain/catalogos";
+import { CONFIG_INDICE_INICIAL, SERVICIOS_INICIALES, TRIBUTARIOS_2026 } from "../domain/catalogosFin";
+import type { Cliente, Contrato, Factura } from "../domain/facturacion";
 import type { CargoPlantilla, DB, Empleado, Historial, Salario } from "../domain/types";
 
 // Datos iniciales = la BBDD real de LA BRUTAL (hoja "BBDD EMPLEADOS" y "BBDD SALARIOS NOMINA").
@@ -14,8 +16,18 @@ interface BBDDPrivada {
   plantilla: CargoPlantilla[];
 }
 
+interface FacturacionPrivada {
+  fuente: string;
+  clientes: Cliente[];
+  contratos: Contrato[];
+  facturas: Factura[];
+  notasMigracion: string[];
+}
+
 const privados = import.meta.glob<BBDDPrivada>("./privado/bbdd.json", { eager: true, import: "default" });
 export const BBDD_PRIVADA: BBDDPrivada | undefined = Object.values(privados)[0];
+const privadosFin = import.meta.glob<FacturacionPrivada>("./privado/facturacion.json", { eager: true, import: "default" });
+export const FACTURACION_PRIVADA: FacturacionPrivada | undefined = Object.values(privadosFin)[0];
 
 export function crearSeed(): DB {
   const empleados = structuredClone(BBDD_PRIVADA?.empleados ?? []);
@@ -38,7 +50,7 @@ export function crearSeed(): DB {
   }
 
   return {
-    version: 2,
+    version: 3,
     empleados,
     salarios,
     historial,
@@ -50,5 +62,14 @@ export function crearSeed(): DB {
     provisiones: [],
     ingresos: [],
     listas,
+    clientes: structuredClone(FACTURACION_PRIVADA?.clientes ?? []),
+    contratos: structuredClone(FACTURACION_PRIVADA?.contratos ?? []),
+    facturas: structuredClone(FACTURACION_PRIVADA?.facturas ?? []),
+    notasCredito: [],
+    servicios: structuredClone(SERVICIOS_INICIALES),
+    tributarios: [TRIBUTARIOS_2026],
+    gastos: [],
+    configIndice: structuredClone(CONFIG_INDICE_INICIAL),
+    notasMigracion: [...(FACTURACION_PRIVADA?.notasMigracion ?? [])],
   };
 }
