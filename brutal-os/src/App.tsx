@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { HashRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
-import { House, ChevronRight, HandCoins, Moon, ReceiptText, Sun, SunMoon, UserRound, LayoutGrid } from "lucide-react";
+import { House, ChevronRight, HandCoins, Moon, ReceiptText, Sun, SunMoon, UserRound, LayoutGrid, LogOut } from "lucide-react";
 import { MODULOS, moduloPorRuta, permitido } from "./modules";
-import { ejecutarProrrogasAutomaticas, nombreVisible, setSesion, useDB, useSesion } from "./data/store";
+import { ejecutarProrrogasAutomaticas, enNube, getUsuarioNube, nombreVisible, setSesion, useDB, useEstadoNube, useSesion } from "./data/store";
+import { salir } from "./data/nube";
 import { alertasEmpleados } from "./domain/empleados";
 import { ToastProvider, useToast } from "./components/ui";
 import Inicio from "./pages/inicio/Inicio";
@@ -61,8 +62,12 @@ function Shell() {
   const [tema, cicloTema] = useTema();
 
   useEffect(() => {
-    const n = ejecutarProrrogasAutomaticas();
+    const avisoNube = (e: Event) => toast((e as CustomEvent<string>).detail, "warn", 7000);
+    window.addEventListener("brutal-nube", avisoNube);
+    // En la nube solo quien puede editar empleados aplica las prórrogas automáticas
+    const n = !enNube() || sesion.rol === "ADMINISTRADOR" || sesion.rol === "COORDINACION" ? ejecutarProrrogasAutomaticas() : 0;
     if (n) toast(<><b>{n}</b> contrato(s) FIJO prorrogados automáticamente por falta de preaviso</>, "warn", 6000);
+    return () => window.removeEventListener("brutal-nube", avisoNube);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,6 +133,7 @@ function Shell() {
           <div className="topbar">
             <Crumbs />
             <div className="toolbar">
+              <EstadoNube />
               <button className="btn glass-btn icon" onClick={cicloTema} title={`Tema: ${tema}`} aria-label="Cambiar tema">
                 {tema === "auto" ? <SunMoon /> : tema === "light" ? <Sun /> : <Moon />}
               </button>
@@ -206,7 +212,32 @@ function Crumbs() {
   );
 }
 
+function EstadoNube() {
+  const e = useEstadoNube();
+  if (e === "local") return null;
+  const txt = { guardado: "Guardado en la nube", guardando: "Guardando…", pendiente: "Cambios sin guardar", error: "Sin conexión · reintentando" }[e];
+  return <span className={`nube-estado ${e}`} title="Estado de sincronización con la base de datos"><i />{txt}</span>;
+}
+
+async function cerrarSesion() {
+  await salir();
+  location.reload();
+}
+
 function RoleSwitcher() {
+  const u = getUsuarioNube();
+  if (u && u.rol !== "ADMINISTRADOR") {
+    return (
+      <div className="stack" style={{ gap: 8 }}>
+        <div className="nav-title" style={{ padding: "0 4px" }}>{u.nombre || u.usuario}</div>
+        <button className="btn glass-btn sm" onClick={cerrarSesion}><LogOut size={14} />Cerrar sesión</button>
+      </div>
+    );
+  }
+  return <RoleSelector nube={!!u} />;
+}
+
+function RoleSelector({ nube }: { nube: boolean }) {
   const s = useSesion();
   const db = useDB();
   const activos = db.empleados.filter((e) => e.estatus === "ACTIVO" && !e.esSocio);
@@ -220,7 +251,7 @@ function RoleSwitcher() {
   };
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <div className="nav-title" style={{ padding: "0 4px" }}>Ver como (demo)</div>
+      <div className="nav-title" style={{ padding: "0 4px" }}>{nube ? "Ver como" : "Ver como (demo)"}</div>
       <div className="role-pill glass" style={{ borderRadius: 14 }}>
         <UserRound size={16} />
         <select value={s.rol} onChange={(e) => cambiar(e.target.value as Rol)} style={{ flex: 1 }}>
@@ -251,6 +282,7 @@ function RoleSwitcher() {
           </select>
         </div>
       )}
+      {nube && <button className="btn glass-btn sm" onClick={cerrarSesion}><LogOut size={14} />Cerrar sesión</button>}
     </div>
   );
 }

@@ -9,14 +9,14 @@ import type { CargoPlantilla, DB, Empleado, Historial, Salario } from "../domain
 // 4 dígitos; los números completos se cargan con el importador de Excel y quedan en el navegador.
 // Sin el archivo privado, la plataforma arranca vacía y pide importar la BBDD.
 
-interface BBDDPrivada {
+export interface BBDDPrivada {
   fuente: string;
   empleados: Empleado[];
   salarios: Salario[];
   plantilla: CargoPlantilla[];
 }
 
-interface FacturacionPrivada {
+export interface FacturacionPrivada {
   fuente: string;
   clientes: Cliente[];
   contratos: Contrato[];
@@ -29,10 +29,10 @@ export const BBDD_PRIVADA: BBDDPrivada | undefined = Object.values(privados)[0];
 const privadosFin = import.meta.glob<FacturacionPrivada>("./privado/facturacion.json", { eager: true, import: "default" });
 export const FACTURACION_PRIVADA: FacturacionPrivada | undefined = Object.values(privadosFin)[0];
 
-export function crearSeed(): DB {
-  const empleados = structuredClone(BBDD_PRIVADA?.empleados ?? []);
-  const salarios = structuredClone(BBDD_PRIVADA?.salarios ?? []);
-  const plantilla = structuredClone(BBDD_PRIVADA?.plantilla ?? PLANTILLA_INICIAL);
+export function crearSeed(bbdd: BBDDPrivada | undefined = BBDD_PRIVADA, fact: FacturacionPrivada | undefined = FACTURACION_PRIVADA): DB {
+  const empleados = structuredClone(bbdd?.empleados ?? []);
+  const salarios = structuredClone(bbdd?.salarios ?? []);
+  const plantilla = structuredClone(bbdd?.plantilla ?? PLANTILLA_INICIAL);
 
   // Historial inicial derivado de las fechas de la hoja (fuente de las gráficas mensuales)
   const historial: Historial[] = [];
@@ -62,14 +62,14 @@ export function crearSeed(): DB {
     provisiones: [],
     ingresos: [],
     listas,
-    clientes: structuredClone(FACTURACION_PRIVADA?.clientes ?? []),
-    contratos: structuredClone(FACTURACION_PRIVADA?.contratos ?? []),
-    facturas: structuredClone(FACTURACION_PRIVADA?.facturas ?? []),
+    clientes: structuredClone(fact?.clientes ?? []),
+    contratos: structuredClone(fact?.contratos ?? []),
+    facturas: structuredClone(fact?.facturas ?? []),
     notasCredito: [],
     servicios: structuredClone(SERVICIOS_INICIALES),
     tributarios: [TRIBUTARIOS_2026],
     gastos: [],
     configIndice: structuredClone(CONFIG_INDICE_INICIAL),
-    notasMigracion: [...(FACTURACION_PRIVADA?.notasMigracion ?? [])],
+    notasMigracion: [...(fact?.notasMigracion ?? [])],
   };
 }

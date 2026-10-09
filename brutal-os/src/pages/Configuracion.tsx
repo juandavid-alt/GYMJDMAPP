@@ -4,10 +4,11 @@ import { guardarConfigIndice, guardarServicio, guardarTributarios } from "../dat
 import type { ConfigIndice, ParamsTributarios, Servicio } from "../domain/facturacion";
 import { mesesDelAnio } from "../data/selectorsFin";
 import { MESES_CORTOS } from "../domain/fechas";
-import { agregarALista, agregarCargo, guardarParametros, restablecerDemo, toggleTipoContrato, useDB, useSesion } from "../data/store";
-import type { Parametros } from "../domain/types";
+import { agregarALista, agregarCargo, enNube, getUsuarioNube, guardarParametros, nombreVisible, restablecerDemo, toggleTipoContrato, useDB, useSesion } from "../data/store";
+import { guardarUsuario, listarUsuarios, type UsuarioNube } from "../data/nube";
+import type { Parametros, Rol } from "../domain/types";
 import { pct, pesos, titulo } from "../lib/format";
-import { Badge, Card, Confirm, Field, MoneyInput, Seg, Switch, useToast } from "../components/ui";
+import { Badge, Card, Confirm, Field, Modal, MoneyInput, Seg, Switch, useToast } from "../components/ui";
 
 type Tab = "parametros" | "tributarios" | "servicios" | "indice" | "listas" | "roles" | "datos";
 
@@ -38,7 +39,7 @@ export default function Configuracion() {
       {tab === "servicios" && <Servicios editable={sesion.rol === "ADMINISTRADOR" || sesion.rol === "CONTADORA"} />}
       {tab === "indice" && <ConfigIndiceView editable={sesion.rol === "ADMINISTRADOR"} />}
       {tab === "listas" && <Listas editable={sesion.rol !== "EMPLEADO"} admin={sesion.rol === "ADMINISTRADOR"} />}
-      {tab === "roles" && <Roles />}
+      {tab === "roles" && (enNube() && getUsuarioNube()?.rol === "ADMINISTRADOR" ? <><UsuariosNube /><div style={{ height: 16 }} /><Roles /></> : <Roles />)}
       {tab === "datos" && <Datos />}
     </div>
   );
@@ -229,10 +230,77 @@ function Roles() {
           ))}
         </div>
       </Card>
-      <Card title="Modo demostración" sub="Cambia de rol desde la barra lateral (“Ver como”) para recorrer la plataforma con los permisos de cada perfil.">
+      {!enNube() && <Card title="Modo demostración" sub="Cambia de rol desde la barra lateral (“Ver como”) para recorrer la plataforma con los permisos de cada perfil.">
         <div className="footnote">Los códigos de verificación se muestran en pantalla como “correo simulado”. En producción se envían por correo o SMS al ADMINISTRADOR y expiran en 5 minutos.</div>
-      </Card>
+      </Card>}
     </div>
+  );
+}
+
+const ROL_NOMBRE: Record<Rol, string> = { ADMINISTRADOR: "Administrador (socio)", COORDINACION: "Coordinación", CONTADORA: "Contadora", CONSULTA: "Consulta (financieros)", EMPLEADO: "Empleado" };
+
+function UsuariosNube() {
+  const db = useDB();
+  const toast = useToast();
+  const [lista, setLista] = useState<UsuarioNube[] | null>(null);
+  const [error, setError] = useState("");
+  const [edit, setEdit] = useState<(Partial<UsuarioNube> & { usuario: string; clave?: string; nuevo?: boolean }) | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  useEffect(() => { listarUsuarios().then(setLista).catch((e: Error) => setError(e.message)); }, []);
+  const personas = [...db.empleados].filter((e) => e.estatus === "ACTIVO").sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+  const guardar = async () => {
+    if (!edit) return;
+    setGuardando(true);
+    try {
+      const { nuevo: _n, ...datos } = edit;
+      setLista(await guardarUsuario({ ...datos, clave: datos.clave || undefined }));
+      toast(edit.nuevo ? "Usuario creado" : "Usuario actualizado");
+      setEdit(null);
+    } catch (e) {
+      toast((e as Error).message, "warn");
+    }
+    setGuardando(false);
+  };
+  return (
+    <Card title="Usuarios con acceso" sub="Cada persona entra con su usuario y clave. Las claves se guardan cifradas; nadie puede leerlas."
+      action={<button className="btn sm primary" onClick={() => setEdit({ usuario: "", nombre: "", rol: "CONSULTA", perfilId: "", empleadoId: "", activo: true, clave: "", nuevo: true })}><Plus size={14} />Nuevo usuario</button>}>
+      {error && <div className="footnote danger-text">{error}</div>}
+      {!lista && !error && <div className="footnote">Cargando…</div>}
+      {lista && !lista.length && <div className="footnote">Aún no hay usuarios. Estás entrando con el acceso de respaldo del administrador: crea un usuario para cada socio y para el equipo.</div>}
+      {lista && lista.length > 0 && (
+        <div className="list" style={{ boxShadow: "none" }}>
+          {lista.map((u) => (
+            <div className="list-row" key={u.usuario} onClick={() => setEdit({ ...u, clave: "" })} style={{ cursor: "pointer" }}>
+              <span className="list-icon" style={{ background: u.activo ? "var(--blue)" : "var(--gray)" }}><ShieldCheck /></span>
+              <div className="grow"><div className="list-label">{u.nombre || u.usuario}</div><div className="footnote">{u.usuario} · {ROL_NOMBRE[u.rol]}</div></div>
+              {!u.activo && <Badge>Inactivo</Badge>}
+            </div>
+          ))}
+        </div>
+      )}
+      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.nuevo ? "Nuevo usuario" : `Editar ${edit?.usuario}`} size="narrow"
+        footer={<><button className="btn" onClick={() => setEdit(null)}>Cancelar</button><button className="btn primary" disabled={guardando || !edit?.usuario || (edit?.nuevo && !edit?.clave)} onClick={guardar}>{guardando ? "Guardando…" : "Guardar"}</button></>}>
+        {edit && (
+          <div className="stack">
+            <Field label="Usuario" hint="Sin espacios, por ejemplo: felipe.vargas"><input className="input" disabled={!edit.nuevo} autoCapitalize="none" value={edit.usuario} onChange={(e) => setEdit({ ...edit, usuario: e.target.value.trim().toLowerCase() })} /></Field>
+            <Field label="Persona" hint="Su perfil en la BBDD: define el nombre y la foto del saludo">
+              <select className="input" value={edit.perfilId ?? ""} onChange={(e) => { const p = db.empleados.find((x) => x.id === e.target.value); setEdit({ ...edit, perfilId: e.target.value, empleadoId: e.target.value, nombre: p ? nombreVisible(p.nombreCompleto) : edit.nombre }); }}>
+                <option value="">— Sin perfil (externo) —</option>
+                {personas.map((p) => <option key={p.id} value={p.id}>{nombreVisible(p.nombreCompleto)} · {p.cargo || (p.esSocio ? "Socio" : "")}</option>)}
+              </select>
+            </Field>
+            <Field label="Nombre visible"><input className="input" value={edit.nombre ?? ""} onChange={(e) => setEdit({ ...edit, nombre: e.target.value })} /></Field>
+            <Field label="Rol">
+              <select className="input" value={edit.rol} onChange={(e) => setEdit({ ...edit, rol: e.target.value as Rol })}>
+                {(Object.keys(ROL_NOMBRE) as Rol[]).map((r) => <option key={r} value={r}>{ROL_NOMBRE[r]}</option>)}
+              </select>
+            </Field>
+            <Field label={edit.nuevo ? "Clave" : "Nueva clave"} hint={edit.nuevo ? "Mínimo 8 caracteres. Compártela por un canal privado." : "Déjala vacía para conservar la actual"}><input className="input" type="password" autoComplete="new-password" value={edit.clave ?? ""} onChange={(e) => setEdit({ ...edit, clave: e.target.value })} /></Field>
+            {!edit.nuevo && <div className="row between"><span>Acceso activo</span><Switch on={!!edit.activo} onChange={(v) => setEdit({ ...edit, activo: v })} /></div>}
+          </div>
+        )}
+      </Modal>
+    </Card>
   );
 }
 
@@ -253,9 +321,15 @@ function Datos() {
         <div className="footnote" style={{ marginBottom: 12 }}>{db.empleados.length} empleados · {db.periodos.length} nóminas · {db.historial.length} eventos en el Historial</div>
         <button className="btn" onClick={exportar}><Database />Descargar respaldo (.json)</button>
       </Card>
-      <Card title="Restablecer demo" sub="Vuelve a los datos ficticios iniciales">
-        <button className="btn danger" onClick={() => setConfirmar(true)}><RotateCcw />Restablecer</button>
-      </Card>
+      {enNube() ? (
+        <Card title="Base de datos en la nube" sub="Vercel Blob privado · cada cambio queda guardado y se hace una copia de seguridad diaria automática">
+          <div className="footnote">Solo las personas con usuario pueden ver la información. Los perfiles de consulta no pueden modificar datos.</div>
+        </Card>
+      ) : (
+        <Card title="Restablecer demo" sub="Vuelve a los datos ficticios iniciales">
+          <button className="btn danger" onClick={() => setConfirmar(true)}><RotateCcw />Restablecer</button>
+        </Card>
+      )}
       <Confirm open={confirmar} onClose={() => setConfirmar(false)} danger title="¿Restablecer la demo?" confirmLabel="Restablecer"
         text="Se borrarán los cambios hechos en este navegador y se cargarán de nuevo los datos ficticios."
         onConfirm={() => { restablecerDemo(); toast("Demo restablecida"); }} />

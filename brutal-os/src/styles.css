@@ -686,3 +686,27 @@ details.disclosure summary::-webkit-details-marker { display: none; }
   .anillo-valor { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { .saludo-bg { animation: none; } }
+
+/* ================= Acceso (login en la nube) ================= */
+.acceso { position: fixed; inset: 0; display: grid; place-items: center; background: #07091a; overflow: hidden; isolation: isolate; padding: 16px; }
+.acceso .saludo-bg { position: absolute; inset: -20%; z-index: -1; }
+.acceso-card { width: min(420px, 100%); padding: 36px 30px 28px; border-radius: 32px; color: #fff; text-align: center; background: rgba(20, 22, 40, .45); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 30px 80px rgba(0,0,0,.45); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); }
+.acceso-logo { width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 20px; display: grid; place-items: center; font-family: var(--font-rounded); font-size: 38px; font-weight: 800; background: linear-gradient(160deg, #4c7dff, #1534d6); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 12px 30px rgba(31,79,255,.5); }
+.acceso-titulo { font-family: var(--font-rounded); font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin: 0; }
+.acceso-sub { opacity: .75; font-size: 15px; margin: 6px 0 24px; line-height: 1.4; }
+.acceso-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.acceso .input.lg { height: 50px; font-size: 16px; border-radius: 14px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); color: #fff; padding: 0 16px; width: 100%; box-sizing: border-box; }
+.acceso .input.lg::placeholder { color: rgba(255,255,255,.55); }
+.acceso .input.lg:focus { outline: none; border-color: rgba(255,255,255,.5); background: rgba(255,255,255,.14); }
+.acceso .btn.lg { height: 50px; font-size: 16px; border-radius: 14px; justify-content: center; width: 100%; margin-top: 4px; }
+.acceso-error { color: #ff8a80; font-size: 14px; font-weight: 600; }
+.acceso-nota { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; opacity: .6; margin-top: 18px; }
+.acceso-pie { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; font-size: 12px; color: rgba(255,255,255,.45); }
+.acceso-archivo { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px dashed rgba(255,255,255,.3); cursor: pointer; font-size: 14px; font-weight: 600; }
+.acceso-archivo input { display: none; }
+.acceso-spinner { width: 28px; height: 28px; margin: 0 auto; border-radius: 50%; border: 3px solid rgba(255,255,255,.2); border-top-color: #fff; animation: girar .9s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.nube-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--label-2); padding: 6px 10px; border-radius: 99px; background: var(--fill-2); }
+.nube-estado i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.nube-estado.guardando i, .nube-estado.pendiente i { background: var(--orange); }
+.nube-estado.error i { background: var(--red); }

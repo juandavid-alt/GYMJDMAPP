@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { crearSeed } from "./seed";
+import { crearSeed, type BBDDPrivada, type FacturacionPrivada } from "./seed";
+import { escribirDB, type SesionNube } from "./nube";
 import { ARCHIVOS } from "../domain/catalogos";
 import {
   calcularTerminacion,
@@ -74,7 +75,102 @@ function cargarSesion(): Sesion {
   return { rol: "ADMINISTRADOR", usuario: socio ? nombreVisible(socio.nombreCompleto) : "Administrador", empleadoId: "LB0004", perfilId: socio?.id ?? "" };
 }
 
+// ---------------- Modo nube (Vercel) ----------------
+// En la nube la base vive en el servidor: cada cambio se guarda con su ETag; si otra persona
+// guardó antes, se recargan sus datos y se avisa. Nada sensible queda en el navegador.
+
+export type EstadoNube = "local" | "guardado" | "guardando" | "pendiente" | "error";
+let nube: { etag: string | null; enviado: DB; timer?: ReturnType<typeof setTimeout>; enVuelo: boolean } | null = null;
+let estadoNube: EstadoNube = "local";
+const subsNube = new Set<() => void>();
+function setEstadoNube(e: EstadoNube) {
+  estadoNube = e;
+  subsNube.forEach((f) => f());
+}
+export function useEstadoNube(): EstadoNube {
+  return useSyncExternalStore((f) => { subsNube.add(f); return () => subsNube.delete(f); }, () => estadoNube);
+}
+export const enNube = () => nube !== null;
+let usuarioNube: SesionNube | null = null;
+/** Usuario real autenticado en la nube (no cambia con "Ver como"). */
+export const getUsuarioNube = () => usuarioNube;
+
+function sesionDesdeNube(s: SesionNube, d: DB): Sesion {
+  const socio = d.empleados.find((e) => e.esSocio);
+  const perfil = d.empleados.find((e) => e.id === s.perfilId) ?? (s.rol === "ADMINISTRADOR" && !s.perfilId ? socio : undefined);
+  return { rol: s.rol, usuario: perfil ? nombreVisible(perfil.nombreCompleto) : s.nombre || s.usuario, empleadoId: s.empleadoId || perfil?.id || "", perfilId: perfil?.id ?? "" };
+}
+
+export function hidratarNube(d: DB, etag: string | null, s: SesionNube) {
+  db = d;
+  sesion = sesionDesdeNube(s, d);
+  usuarioNube = s;
+  nube = { etag, enviado: d, enVuelo: false };
+  try {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(KEY_SESION);
+  } catch {
+    /* noop */
+  }
+  setEstadoNube("guardado");
+  subs.forEach((f) => f());
+}
+
+/** Construye la base inicial (BBDD + facturación) para cargarla al servidor. */
+export function crearBaseInicial(bbdd?: BBDDPrivada, fact?: FacturacionPrivada): DB {
+  return inicializar(bbdd, fact);
+}
+
+function programarGuardado() {
+  if (!nube || db === nube.enviado) return;
+  setEstadoNube("pendiente");
+  clearTimeout(nube.timer);
+  nube.timer = setTimeout(guardarEnNube, 700);
+}
+
+async function guardarEnNube() {
+  if (!nube || nube.enVuelo || db === nube.enviado) return;
+  nube.enVuelo = true;
+  const enviando = db;
+  setEstadoNube("guardando");
+  try {
+    const r = await escribirDB(enviando, nube.etag);
+    if (r.tipo === "ok") {
+      nube.etag = r.etag;
+      nube.enviado = enviando;
+    } else if (r.tipo === "conflicto") {
+      nube.etag = r.etag;
+      db = r.db;
+      nube.enviado = r.db;
+      subs.forEach((f) => f());
+      window.dispatchEvent(new CustomEvent("brutal-nube", { detail: "Otra persona guardó cambios al mismo tiempo. Se cargó la versión más reciente: repite tu último cambio." }));
+    } else {
+      window.dispatchEvent(new CustomEvent("brutal-nube", { detail: r.status === 401 ? "Tu sesión venció. Vuelve a entrar para guardar." : r.mensaje }));
+      setEstadoNube("error");
+      return;
+    }
+  } catch {
+    setEstadoNube("error");
+    nube.timer = setTimeout(guardarEnNube, 5000);
+    return;
+  } finally {
+    if (nube) nube.enVuelo = false;
+  }
+  if (db !== nube.enviado) programarGuardado();
+  else setEstadoNube("guardado");
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", (e) => {
+    if (nube && db !== nube.enviado) e.preventDefault();
+  });
+}
+
 function persistir() {
+  if (nube) {
+    programarGuardado();
+    return;
+  }
   try {
     localStorage.setItem(KEY, JSON.stringify(db));
     localStorage.setItem(KEY_SESION, JSON.stringify(sesion));
@@ -757,8 +853,8 @@ export function restablecerDemo() {
 
 // ---------------- Inicialización de la demo ----------------
 
-function inicializar(): DB {
-  const d = crearSeed();
+function inicializar(bbdd?: BBDDPrivada, fact?: FacturacionPrivada): DB {
+  const d = crearSeed(bbdd, fact);
   const ref = hoy();
   const { anio, mes } = { anio: Number(ref.slice(0, 4)), mes: Number(ref.slice(5, 7)) };
   // Facturas programadas de los contratos vigentes desde el mes en curso
