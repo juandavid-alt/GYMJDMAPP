@@ -231,7 +231,7 @@ a { color: var(--blue); text-decoration: none; }
 .kpi-icon { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff; }
 .kpi-icon svg { width: 15px; height: 15px; }
 .kpi-value { font-family: var(--font-rounded); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; margin-top: 10px; font-variant-numeric: tabular-nums; line-height: 1.1; }
-.kpi-foot { margin-top: 6px; font-size: 13px; color: var(--label-2); display: flex; align-items: center; gap: 6px; }
+.kpi-foot { margin-top: 6px; font-size: 13px; color: var(--label-2); display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
 .trend { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; }
 .trend.up { color: var(--green); }
 .trend.down { color: var(--red); }
@@ -471,9 +471,10 @@ table.t th.sticky-col { z-index: 3; }
 
 /* Bar list */
 .barlist { display: flex; flex-direction: column; gap: 8px; }
-.barlist-row { display: grid; grid-template-columns: minmax(90px, 160px) 1fr 44px; gap: 10px; align-items: center; font-size: 13px; }
+.barlist-row { display: grid; grid-template-columns: minmax(90px, 160px) 1fr minmax(44px, max-content); gap: 10px; align-items: center; font-size: 13px; }
 .barlist-row .bar { height: 22px; background: var(--fill-2); border-radius: 7px; overflow: hidden; }
 .barlist-row .bar span { display: block; height: 100%; border-radius: 7px; transition: width .7s var(--ease); }
+.barlist-row b { white-space: nowrap; }
 .barlist-row .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--label); }
 
 /* Perfil */

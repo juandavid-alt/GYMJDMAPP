@@ -11,7 +11,7 @@ export function pesos(n: number | null | undefined): string {
 export function pesosCortos(n: number): string {
   const a = Math.abs(n);
   const s = n < 0 ? "−" : "";
-  if (a >= 1e9) return `${s}$ ${(a / 1e9).toLocaleString("es-CO", { maximumFractionDigits: 1 })} MM`;
+  if (a >= 1e9) return `${s}$ ${(a / 1e9).toLocaleString("es-CO", { maximumFractionDigits: 2 })} MM`;
   if (a >= 1e6) return `${s}$ ${(a / 1e6).toLocaleString("es-CO", { maximumFractionDigits: 1 })} M`;
   if (a >= 1e3) return `${s}$ ${(a / 1e3).toLocaleString("es-CO", { maximumFractionDigits: 0 })} mil`;
   return pesos(n);

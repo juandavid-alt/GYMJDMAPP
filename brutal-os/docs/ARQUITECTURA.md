@@ -149,3 +149,19 @@ con pagos de prima/cesantías, INGRESOS MENSUALES y proyección.
 8. **Día hábil de PILA.** Depende de los dos últimos dígitos del NIT: ¿cuáles son?
 9. **Socios en el flujo de carga.** COORDINACIÓN no ve datos de socios, así que sus filas entran
    cargadas y las gestiona el ADMINISTRADOR.
+
+## 7. Ciclo de facturación e Índice (instrucciones finales)
+
+```
+CLIENTE (código CB000001) → CONTRATO → FACTURA PROGRAMADA → EMITIDA (n.º obligatorio y único) → CARTERA → PAGADA → INGRESO
+```
+
+- **Clientes**: tarjetas por estado (activos, por confirmar, en pausa, retirados), alias, NIT con dígito de verificación validado, bloqueo de duplicados, perfil tributario, proyectos/marcas y checklist de datos faltantes.
+- **Contratos**: generan las facturas programadas de cada mes en el ciclo del cliente (día 1 o 15). Un otrosí solo recalcula las programadas futuras; un contrato en pausa congela sus programadas. Alertas a 90, 60 y 30 días.
+- **Facturación**: nueva factura en 4 pasos (fija, adicional, one shot, pauta con incremento digitable por la pauta ejecutada o por el subtotal), cálculo en vivo con y sin IVA, retenciones por perfil, validaciones de valor atípico y duplicada, calendario por ciclos, emisión en lote, notas crédito con aprobación de la CONTADORA y reemisión.
+- **Cartera**: antigüedad, alertas a 10 días, 3 días (con correo al cliente) y vencidas cada 5 días, correo de cobro con plantilla editable, fecha comprometida, abonos y "Facturas por verificar".
+- **Ingresos**: solo facturas pagadas; reembolsos de pauta y terceros fuera de ingresos; retenciones estimadas vs reales, certificados por cliente y reporte para la contadora.
+- **Gastos y costos**: categorías de costo, gasto, socios y fuera del P&L; recurrentes alimentan la proyección.
+- **Índice**: titulares, acumulado vs meta, proyección de cierre (conservador, base, optimista), alertas priorizadas, resumen ejecutivo automático, estado de resultados, rentabilidad por cliente, equipo y 16 gráficas. Base causado/caja y con/sin IVA. COORDINACIÓN ve solo alertas operativas.
+
+Los datos de clientes y facturas migrados (septiembre y octubre 2026) viven en `src/data/privado/facturacion.json`, fuera del repositorio.

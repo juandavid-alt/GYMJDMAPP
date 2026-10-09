@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { Database, Landmark, ListChecks, Plus, RotateCcw, Save, ShieldCheck, Users } from "lucide-react";
+import { Database, Landmark, ListChecks, Plus, RotateCcw, Save, ShieldCheck, Target, Users } from "lucide-react";
+import { guardarConfigIndice, guardarServicio, guardarTributarios } from "../data/storeFin";
+import type { ConfigIndice, ParamsTributarios, Servicio } from "../domain/facturacion";
+import { mesesDelAnio } from "../data/selectorsFin";
+import { MESES_CORTOS } from "../domain/fechas";
 import { agregarALista, agregarCargo, guardarParametros, restablecerDemo, toggleTipoContrato, useDB, useSesion } from "../data/store";
 import type { Parametros } from "../domain/types";
 import { pct, pesos, titulo } from "../lib/format";
 import { Badge, Card, Confirm, Field, MoneyInput, Seg, Switch, useToast } from "../components/ui";
 
-type Tab = "parametros" | "listas" | "roles" | "datos";
+type Tab = "parametros" | "tributarios" | "servicios" | "indice" | "listas" | "roles" | "datos";
 
 export default function Configuracion() {
   const sesion = useSesion();
@@ -21,12 +25,18 @@ export default function Configuracion() {
       <div style={{ marginBottom: 20 }}>
         <Seg glassy value={tab} onChange={setTab} options={[
           { value: "parametros", label: <><Landmark size={14} />Parámetros</> },
+          { value: "tributarios", label: <><Landmark size={14} />Tributarios</> },
+          { value: "servicios", label: <><ListChecks size={14} />Servicios</> },
+          { value: "indice", label: <><Target size={14} />Índice</> },
           { value: "listas", label: <><ListChecks size={14} />Listas maestras</> },
           { value: "roles", label: <><Users size={14} />Usuarios y roles</> },
           { value: "datos", label: <><Database size={14} />Datos</> },
         ]} />
       </div>
       {tab === "parametros" && <ParametrosView editable={sesion.rol === "ADMINISTRADOR"} />}
+      {tab === "tributarios" && <Tributarios editable={sesion.rol === "ADMINISTRADOR" || sesion.rol === "CONTADORA"} />}
+      {tab === "servicios" && <Servicios editable={sesion.rol === "ADMINISTRADOR" || sesion.rol === "CONTADORA"} />}
+      {tab === "indice" && <ConfigIndiceView editable={sesion.rol === "ADMINISTRADOR"} />}
       {tab === "listas" && <Listas editable={sesion.rol !== "EMPLEADO"} admin={sesion.rol === "ADMINISTRADOR"} />}
       {tab === "roles" && <Roles />}
       {tab === "datos" && <Datos />}
@@ -250,5 +260,146 @@ function Datos() {
         text="Se borrarán los cambios hechos en este navegador y se cargarán de nuevo los datos ficticios."
         onConfirm={() => { restablecerDemo(); toast("Demo restablecida"); }} />
     </div>
+  );
+}
+
+function Tributarios({ editable }: { editable: boolean }) {
+  const db = useDB();
+  const toast = useToast();
+  const [p, setP] = useState<ParamsTributarios>(db.tributarios[db.tributarios.length - 1]);
+  const pctIn = (v: number, on: (n: number) => void, step = "0.01") => (
+    <div className="row" style={{ gap: 6 }}><input className="input num" type="number" step={step} disabled={!editable} value={Number((v * 100).toFixed(4))} onChange={(e) => on(Number(e.target.value) / 100)} /><span className="muted">%</span></div>
+  );
+  return (
+    <>
+      <div className="row" style={{ marginBottom: 16 }}>
+        <Badge color="yellow">Valores iniciales: la contadora debe validarlos antes de operar</Badge>
+        {editable && <button className="btn primary right" onClick={() => { guardarTributarios(p); toast(`Parámetros tributarios ${p.anio} guardados`); }}><Save />Guardar {p.anio}</button>}
+      </div>
+      <div className="grid g3">
+        <Card title="IVA y ReteIVA">
+          <div className="stack">
+            <Field label="Tarifa de IVA">{pctIn(p.ivaPct, (n) => setP({ ...p, ivaPct: n }))}</Field>
+            <Field label="ReteIVA (sobre el IVA)" hint="Practicada por grandes contribuyentes y entidades públicas">{pctIn(p.reteIvaPct, (n) => setP({ ...p, reteIvaPct: n }))}</Field>
+            <Field label="UVT"><MoneyInput disabled={!editable} value={p.uvt} onChange={(v) => setP({ ...p, uvt: v })} /></Field>
+          </div>
+        </Card>
+        <Card title="ReteFuente por concepto">
+          <div className="stack">
+            {(Object.keys(p.reteFuente) as (keyof ParamsTributarios["reteFuente"])[]).map((k) => (
+              <div className="form-grid" key={k}>
+                <Field label={titulo(k)}>{pctIn(p.reteFuente[k].pct, (n) => setP({ ...p, reteFuente: { ...p.reteFuente, [k]: { ...p.reteFuente[k], pct: n } } }))}</Field>
+                <Field label="Base mínima (UVT)"><input className="input num" type="number" disabled={!editable} value={p.reteFuente[k].baseUvt} onChange={(e) => setP({ ...p, reteFuente: { ...p.reteFuente, [k]: { ...p.reteFuente[k], baseUvt: Number(e.target.value) } } })} /></Field>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card title="ReteICA Bogotá">
+          <div className="stack">
+            <Field label="Tarifa (por mil)" hint="Según actividad CIIU"><input className="input num" type="number" step="0.01" disabled={!editable} value={p.reteIcaPorMil} onChange={(e) => setP({ ...p, reteIcaPorMil: Number(e.target.value) })} /></Field>
+            <Field label="Base mínima (UVT)"><input className="input num" type="number" disabled={!editable} value={p.reteIcaBaseUvt} onChange={(e) => setP({ ...p, reteIcaBaseUvt: Number(e.target.value) })} /></Field>
+          </div>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+function Servicios({ editable }: { editable: boolean }) {
+  const db = useDB();
+  const [nuevo, setNuevo] = useState<Servicio>({ nombre: "", categoria: "ADICIONAL", conceptoRetencion: "SERVICIOS", baseIva: "TOTAL", activo: true });
+  return (
+    <>
+      <div className="table-wrap">
+        <table className="t">
+          <thead><tr><th>Servicio</th><th>Categoría</th><th>Concepto de retención</th><th>Base de IVA</th><th>Activo</th></tr></thead>
+          <tbody>
+            {db.servicios.map((s) => (
+              <tr key={s.nombre}>
+                <td>{s.nombre}</td>
+                <td><Badge color={s.categoria === "MENSUAL" ? "green" : s.categoria === "ADICIONAL" ? "blue" : s.categoria === "PAUTA" ? "orange" : "gray"}>{s.categoria}</Badge></td>
+                <td><select className="select sm" style={{ width: 160 }} disabled={!editable} value={s.conceptoRetencion} onChange={(e) => guardarServicio({ ...s, conceptoRetencion: e.target.value as Servicio["conceptoRetencion"] })}><option>SERVICIOS</option><option>HONORARIOS</option><option>PUBLICIDAD</option></select></td>
+                <td><select className="select sm" style={{ width: 150 }} disabled={!editable || s.categoria !== "PAUTA"} value={s.baseIva} onChange={(e) => guardarServicio({ ...s, baseIva: e.target.value as Servicio["baseIva"] })}><option value="TOTAL">Total</option><option value="INCREMENTO">Solo incremento</option></select></td>
+                <td><Switch on={s.activo} disabled={!editable} onChange={(v) => guardarServicio({ ...s, activo: v })} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {editable && (
+        <div className="row wrap" style={{ marginTop: 12 }}>
+          <input className="input" style={{ maxWidth: 280 }} placeholder="Nuevo servicio" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
+          <select className="select" style={{ width: 160 }} value={nuevo.categoria} onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value as Servicio["categoria"] })}><option>MENSUAL</option><option>ADICIONAL</option><option>PAUTA</option><option>TERCEROS</option></select>
+          <button className="btn primary" disabled={!nuevo.nombre.trim() || db.servicios.some((s) => s.nombre === nuevo.nombre.trim())} onClick={() => { guardarServicio({ ...nuevo, nombre: nuevo.nombre.trim() }); setNuevo({ ...nuevo, nombre: "" }); }}><Plus />Agregar</button>
+        </div>
+      )}
+      <div className="caption" style={{ marginTop: 8 }}>La base de IVA de la pauta con incremento (sobre el total o solo sobre el incremento) la define la contadora.</div>
+    </>
+  );
+}
+
+function ConfigIndiceView({ editable }: { editable: boolean }) {
+  const db = useDB();
+  const toast = useToast();
+  const [c, setC] = useState<ConfigIndice>(db.configIndice);
+  const anio = new Date().getFullYear();
+  const meses = mesesDelAnio(anio);
+  const pctIn = (k: keyof ConfigIndice, label: string, hint?: string) => (
+    <Field label={label} hint={hint}><div className="row" style={{ gap: 6 }}><input className="input num" type="number" disabled={!editable} value={Math.round((c[k] as number) * 1000) / 10} onChange={(e) => setC({ ...c, [k]: Number(e.target.value) / 100 })} /><span className="muted">%</span></div></Field>
+  );
+  const pres = (m: string, k: "ingresos" | "costos" | "gastos", v: number) => setC({ ...c, presupuesto: { ...c.presupuesto, [m]: { ...(c.presupuesto[m] ?? { ingresos: 0, costos: 0, gastos: 0 }), [k]: v } } });
+  return (
+    <>
+      <div className="row" style={{ marginBottom: 16 }}>
+        {!editable && <Badge color="yellow">Solo lectura · edita el ADMINISTRADOR</Badge>}
+        {editable && <button className="btn primary right" onClick={() => { guardarConfigIndice(c); toast("Configuración del Índice guardada"); }}><Save />Guardar</button>}
+      </div>
+      <div className="grid g3">
+        <Card title="Metas">
+          <div className="stack">
+            <Field label="Ventas anuales (ingreso propio)"><MoneyInput disabled={!editable} value={c.metaVentasAnual} onChange={(v) => setC({ ...c, metaVentasAnual: v })} /></Field>
+            {pctIn("metaMargenBruto", "Margen bruto")}
+            {pctIn("metaMargenOperacional", "Margen operacional")}
+            {pctIn("metaNominaPctIngresos", "Nómina % sobre ingresos (máximo)")}
+          </div>
+        </Card>
+        <Card title="Umbrales de alerta">
+          <div className="stack">
+            {pctIn("umbralSobrecosto", "Sobrecosto por categoría", "vs promedio de 3 meses")}
+            <Field label="Tope de gasto abrupto"><MoneyInput disabled={!editable} value={c.topeGastoAbrupto} onChange={(v) => setC({ ...c, topeGastoAbrupto: v })} /></Field>
+            {pctIn("umbralConcentracion", "Concentración por cliente")}
+            <Field label="Tope de capital adelantado en pauta"><MoneyInput disabled={!editable} value={c.topeCapitalPauta} onChange={(v) => setC({ ...c, topeCapitalPauta: v })} /></Field>
+          </div>
+        </Card>
+        <Card title="Supuestos de proyección y cobro">
+          <div className="stack">
+            <Field label="Meses para promediar adicionales"><input className="input num" type="number" disabled={!editable} value={c.mesesPromedio} onChange={(e) => setC({ ...c, mesesPromedio: Number(e.target.value) })} /></Field>
+            {pctIn("pctRenovacion", "% de renovación de contratos (optimista)")}
+            <Field label="Correo de facturación LA BRUTAL"><input className="input" disabled={!editable} value={c.correoBrutal} onChange={(e) => setC({ ...c, correoBrutal: e.target.value })} /></Field>
+            <Field label="Teléfono"><input className="input" disabled={!editable} value={c.telefonoBrutal} onChange={(e) => setC({ ...c, telefonoBrutal: e.target.value })} /></Field>
+          </div>
+        </Card>
+      </div>
+      <Card title="Plantilla del correo de cobro" sub="Variables: [N.º FACTURA] [RAZÓN SOCIAL] [VALOR TOTAL] [DESCRIPCIÓN] [FECHA DE VENCIMIENTO] [correo] [teléfono]" style={{ marginTop: 16 }}>
+        <div className="stack">
+          <Field label="Asunto"><input className="input" disabled={!editable} value={c.plantillaCorreo.asunto} onChange={(e) => setC({ ...c, plantillaCorreo: { ...c.plantillaCorreo, asunto: e.target.value } })} /></Field>
+          <Field label="Cuerpo"><textarea className="textarea" style={{ minHeight: 200 }} disabled={!editable} value={c.plantillaCorreo.cuerpo} onChange={(e) => setC({ ...c, plantillaCorreo: { ...c.plantillaCorreo, cuerpo: e.target.value } })} /></Field>
+        </div>
+      </Card>
+      <div className="section-title">Presupuesto {anio} <small>Ingresos, costos y gastos por mes</small></div>
+      <div className="table-wrap">
+        <table className="t">
+          <thead><tr><th>Mes</th><th className="r">Ingresos</th><th className="r">Costos</th><th className="r">Gastos</th></tr></thead>
+          <tbody>
+            {meses.map((m, i) => (
+              <tr key={m}>
+                <td>{MESES_CORTOS[i]}</td>
+                {(["ingresos", "costos", "gastos"] as const).map((k) => <td key={k} className="r"><MoneyInput disabled={!editable} value={c.presupuesto[m]?.[k] ?? 0} onChange={(v) => pres(m, k, v)} /></td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

@@ -2,6 +2,8 @@ import { calcularFila, calcularNomina, sumar, type CalculoNomina, type Totales }
 import { finDeMes, hoy, inicioDeMes, mesAnterior, mesId, mesSiguiente, MESES_CORTOS } from "../domain/fechas";
 import type { DB, FilaNomina, Parametros, PeriodoNomina } from "../domain/types";
 import { parametrosDe, salarioVigente } from "./store";
+import { calcFactura } from "./storeFin";
+import { cuentaEnFacturado } from "../domain/facturacion";
 
 export interface FilaCalc { f: FilaNomina; c: CalculoNomina; }
 export interface PeriodoCalc {
@@ -42,8 +44,12 @@ export function periodoPrevio(db: DB, p: PeriodoNomina) {
   return db.periodos.find((x) => x.id === mesId(a.anio, a.mes));
 }
 
+/** Ingresos de la agencia del mes: facturación emitida (ingreso propio sin IVA); si no hay, el registro manual. */
 export function ingresoDe(db: DB, mes: string) {
-  return db.ingresos.find((i) => i.mes === mes)?.valor ?? 0;
+  const facturado = db.facturas
+    .filter((f) => cuentaEnFacturado(f) && (f.emision ?? f.fechaProgramada).slice(0, 7) === mes)
+    .reduce((s, f) => s + calcFactura(db, f).ingresoPropio, 0);
+  return facturado || (db.ingresos.find((i) => i.mes === mes)?.valor ?? 0);
 }
 
 /** Serie mensual del año (solo empleados, sin socios). */

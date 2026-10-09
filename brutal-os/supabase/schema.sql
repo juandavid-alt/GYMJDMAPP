@@ -343,3 +343,122 @@ create policy his_staff on historial for select using (rol_actual() in ('ADMINIS
 --  1) verifica rol ADMINISTRADOR, 2) valida el código (hash, expiración, un solo uso),
 --  3) congela filas_nomina.calculo, 4) crea cuentas_por_pagar y movimientos_provisiones,
 --  5) pasa el estado a 'ENVIADO A PAGOS' y escribe en historial. Todo en una transacción.
+
+-- =====================================================================
+-- CICLO DE FACTURACIÓN: CLIENTES → CONTRATOS → FACTURAS → CARTERA → INGRESOS
+-- =====================================================================
+alter type rol_app add value if not exists 'CONTADORA';
+
+create table clientes (
+  id                  text primary key,                 -- CB000001 (código interno único: llave de todo)
+  nombre_comercial    text not null,
+  razon_social        text,
+  nit                 text unique,                      -- bloqueo de duplicados por NIT
+  dv                  text,
+  alias               text[] not null default '{}',     -- formas en que aparece en el histórico
+  correos_facturacion text[] not null default '{}',
+  correo_cartera      text,
+  contacto            jsonb,
+  perfil_tributario   jsonb not null,                   -- gran contribuyente, autorretenedor, ICA Bogotá, simple, pública
+  requiere_oc         boolean not null default false,
+  ciclo               int not null check (ciclo in (1, 15)),
+  plazo_pago          int not null default 30,
+  estado              text not null check (estado in ('ACTIVO','EN PAUSA','RETIRADO','POR CONFIRMAR')),
+  proyectos           text[] not null default '{}',
+  creado_en           timestamptz not null default now(),
+  archivado_en        timestamptz
+);
+
+create table servicios (
+  nombre              text primary key,
+  categoria           text not null check (categoria in ('MENSUAL','ADICIONAL','PAUTA','TERCEROS')),
+  concepto_retencion  text not null,
+  base_iva            text not null check (base_iva in ('TOTAL','INCREMENTO')),
+  activo              boolean not null default true
+);
+
+create table parametros_tributarios (
+  anio int primary key, iva_pct numeric(7,5) not null, reteiva_pct numeric(7,5) not null,
+  retefuente jsonb not null, reteica_por_mil numeric(8,4) not null, reteica_base_uvt numeric(6,2) not null, uvt numeric(14,2) not null
+);
+
+create table contratos (
+  id                    text primary key,               -- CT-0001
+  cliente_id            text not null references clientes(id),
+  proyecto              text,
+  inicio                date not null,
+  duracion_meses        int,                            -- null = por definir
+  fin                   date,
+  renovacion_auto       boolean not null default false,
+  valor_mensual         numeric(16,2) not null,         -- antes de IVA
+  servicios             jsonb not null default '[]',    -- [{servicio, entregables}]
+  incremento_pauta_pct  numeric(7,5) not null default 0,
+  oc                    jsonb,
+  estado                text not null check (estado in ('ACTIVO','EN PAUSA','TERMINADO'))
+);
+
+create table otrosies (
+  id bigserial primary key, contrato_id text not null references contratos(id), desde date not null, valor_mensual numeric(16,2) not null, nota text
+);
+
+create table facturas (
+  id                  uuid primary key default gen_random_uuid(),
+  numero              text unique,                      -- normalizado (sin espacios, mayúsculas); nunca se reutiliza
+  dato_incompleto     boolean not null default false,
+  tipo                text not null check (tipo in ('FIJA','ADICIONAL','ONE SHOT','PAUTA')),
+  cliente_id          text not null references clientes(id),
+  proyecto            text,
+  contrato_id         text references contratos(id),
+  items               jsonb not null,                   -- [{servicio, cantidad, valor}]
+  pauta               jsonb,                            -- {base, pct, fechaEjecucion}
+  periodo             text not null,                    -- AAAA-MM del servicio
+  descripcion         text not null,
+  observaciones       text,
+  estado              text not null check (estado in ('PROGRAMADA','EMITIDA','ABONADA','PAGADA','EN PAUSA','ANULADA')),
+  fecha_programada    date not null,
+  emision             date,
+  vencimiento         date,
+  oc                  text,
+  link                text,
+  pago                jsonb,                            -- {fecha, valorRecibido, banco, diferencia, retencionesReales}
+  ajuste_nc           numeric(16,2) not null default 0,
+  reemite_a           uuid references facturas(id),
+  fecha_pago_comprometida date,
+  constraint emitida_con_numero check (estado in ('PROGRAMADA','EN PAUSA') or numero is not null or dato_incompleto),
+  constraint vencimiento_valido check (vencimiento is null or emision is null or vencimiento >= emision)
+);
+
+create table abonos (id bigserial primary key, factura_id uuid not null references facturas(id), fecha date, valor numeric(16,2) not null, banco text, nota text);
+create table envios_cobro (id bigserial primary key, factura_id uuid not null references facturas(id), fecha timestamptz not null default now(), destinatario text not null, tipo text);
+
+create table notas_credito (
+  id uuid primary key default gen_random_uuid(),
+  factura_id uuid not null references facturas(id),
+  motivo text not null, alcance text not null check (alcance in ('TOTAL','PARCIAL')), valor numeric(16,2) not null, detalle text,
+  estado text not null check (estado in ('SOLICITADA','APROBADA','RECHAZADA')),
+  numero text unique, solicitada_por uuid references auth.users(id), resuelta_por uuid references auth.users(id), comentario text
+);
+
+create table gastos (
+  id uuid primary key default gen_random_uuid(),
+  fecha date not null, proveedor text not null, valor numeric(16,2) not null, iva numeric(16,2) not null default 0,
+  tipo text not null check (tipo in ('COSTO','GASTO','SOCIOS','FUERA')), categoria text not null, subcategoria text,
+  recurrente boolean not null default false, cliente_id text references clientes(id), area text, soporte text
+);
+
+create table config_indice (id int primary key default 1, datos jsonb not null);  -- metas, presupuesto, umbrales, supuestos, plantilla de correo
+
+alter table clientes enable row level security;
+alter table facturas enable row level security;
+alter table notas_credito enable row level security;
+alter table gastos enable row level security;
+create policy fin_admin on facturas for all using (rol_actual() = 'ADMINISTRADOR');
+create policy fin_coord on facturas for all using (rol_actual() = 'COORDINACION');
+create policy fin_conta on facturas for select using (rol_actual() = 'CONTADORA');
+create policy nc_conta on notas_credito for update using (rol_actual() in ('CONTADORA','ADMINISTRADOR'));   -- solo contadora aprueba
+create policy nc_coord on notas_credito for insert with check (rol_actual() in ('COORDINACION','ADMINISTRADOR'));
+create policy nc_ver on notas_credito for select using (rol_actual() in ('ADMINISTRADOR','COORDINACION','CONTADORA'));
+create policy cli_staff on clientes for all using (rol_actual() in ('ADMINISTRADOR','COORDINACION'));
+create policy cli_conta on clientes for select using (rol_actual() = 'CONTADORA');
+create policy gas_admin on gastos for all using (rol_actual() in ('ADMINISTRADOR','COORDINACION'));
+create policy gas_conta on gastos for select using (rol_actual() = 'CONTADORA');

@@ -1,5 +1,5 @@
 import {
-  Banknote, Building2, Calculator, FileText, FolderOpen, Gavel, HeartHandshake, House, Landmark,
+  Banknote, BadgeDollarSign, Building2, Calculator, ChartNoAxesCombined, FileText, FolderOpen, Gavel, HandCoins, HeartHandshake, Landmark,
   ReceiptText, Settings, ShieldCheck, Users, Wallet, UsersRound, type LucideIcon,
 } from "lucide-react";
 
@@ -17,7 +17,7 @@ export interface Modulo {
 }
 
 export const MODULOS: Modulo[] = [
-  { slug: "inicio", nombre: "Inicio", ruta: "/", color: "#1F4FFF", gradiente: "linear-gradient(145deg,#4C7DFF,#1534D6)", icono: House, listo: true, grupo: "Inicio", descripcion: "¿Cómo está la empresa este mes?" },
+  { slug: "inicio", nombre: "Índice", ruta: "/", color: "#1F4FFF", gradiente: "linear-gradient(145deg,#4C7DFF,#1534D6)", icono: ChartNoAxesCombined, listo: true, grupo: "Inicio", descripcion: "Torre de control: utilidad, cierre de año y alertas" },
   { slug: "empleados", nombre: "Empleados", ruta: "/empleados", color: "#AF52DE", gradiente: "linear-gradient(145deg,#C77DFF,#7B2FBE)", icono: Users, listo: true, grupo: "Personas", descripcion: "BBDD maestra: ingresos, retiros, contratos, documentos y exámenes" },
   { slug: "nomina", nombre: "Nómina", ruta: "/nomina", color: "#30C759", gradiente: "linear-gradient(145deg,#4BE07A,#16994A)", icono: Banknote, listo: true, grupo: "Personas", descripcion: "Plantilla salarial, nómina mensual, aprobación con código y provisiones" },
   {
@@ -26,27 +26,22 @@ export const MODULOS: Modulo[] = [
     incluira: ["Manual de funciones por cargo con firma electrónica del empleado y del representante legal", "Alerta automática cuando se crea un cargo sin manual", "Vacaciones: causadas, tomadas y disponibles", "Incapacidades y ausencias conectadas a novedades de nómina", "Reglamento interno, SG-SST y política de tratamiento de datos", "Certificados laborales autogenerados en PDF"],
   },
   {
-    slug: "pagos", nombre: "Pagos", ruta: "/modulo/pagos", color: "#FF9500", gradiente: "linear-gradient(145deg,#FFB340,#E07800)", icono: Wallet, listo: false, grupo: "Finanzas",
+    slug: "pagos", nombre: "Pagos", ruta: "/modulo/pagos", color: "#A2845E", gradiente: "linear-gradient(145deg,#C4A57E,#7D6243)", icono: Banknote, listo: false, grupo: "Finanzas",
     descripcion: "Cuentas por pagar, calendario y archivo de dispersión bancaria",
     incluira: ["Recibe automáticamente los pagos de la nómina aprobada (ya conectado)", "Provisión mensual a la cuenta de ahorros con saldo acumulado", "Proveedores, freelancers, impuestos y PILA", "Estados Pendiente → Aprobado → Pagado con soporte obligatorio", "Calendario de pagos y flujo semanal"],
   },
-  {
-    slug: "facturacion", nombre: "Facturación", ruta: "/modulo/facturacion", color: "#30B0C7", gradiente: "linear-gradient(145deg,#5AC8FA,#1A8BA6)", icono: ReceiptText, listo: false, grupo: "Finanzas",
-    descripcion: "Ingresos de la agencia por cliente y por mes",
-    incluira: ["Relación de facturas por cliente", "Reemplaza la hoja INGRESOS MENSUALES de nómina", "Proyección de cierre de año con contratos firmados"],
-  },
+  { slug: "clientes", nombre: "Clientes", ruta: "/clientes", color: "#5856D6", gradiente: "linear-gradient(145deg,#7D7AFF,#3634A3)", icono: Building2, listo: true, grupo: "Finanzas", descripcion: "Tarjetas de cliente, contratos y otrosíes" },
+  { slug: "facturacion", nombre: "Facturación", ruta: "/facturacion", color: "#30B0C7", gradiente: "linear-gradient(145deg,#5AC8FA,#1A8BA6)", icono: ReceiptText, listo: true, grupo: "Finanzas", descripcion: "Programadas, emitidas, lote, notas crédito y migración" },
+  { slug: "cartera", nombre: "Cartera", ruta: "/cartera", color: "#FF3B30", gradiente: "linear-gradient(145deg,#FF6961,#D70015)", icono: HandCoins, listo: true, grupo: "Finanzas", descripcion: "Antigüedad, alertas de cobro y pagos por verificar" },
+  { slug: "ingresos", nombre: "Ingresos", ruta: "/ingresos", color: "#34C759", gradiente: "linear-gradient(145deg,#4BE07A,#16994A)", icono: BadgeDollarSign, listo: true, grupo: "Finanzas", descripcion: "Facturas pagadas, retenciones y certificados" },
+  { slug: "gastos", nombre: "Gastos y costos", ruta: "/gastos", color: "#FF9500", gradiente: "linear-gradient(145deg,#FFB340,#E07800)", icono: Wallet, listo: true, grupo: "Finanzas", descripcion: "Pagos que no son nómina, por categoría" },
   {
     slug: "impuestos", nombre: "Impuestos", ruta: "/modulo/impuestos", color: "#FFCC00", gradiente: "linear-gradient(145deg,#FFD84D,#E0A800)", icono: Landmark, listo: false, grupo: "Finanzas",
     descripcion: "Calendario tributario nacional y de Bogotá",
     incluira: ["Retención, IVA, ICA, renta y exógena según dígito del NIT", "Recibos y formularios adjuntos", "Semáforo de vencimientos", "Carga tributaria mensual y anual"],
   },
   {
-    slug: "clientes", nombre: "Clientes", ruta: "/modulo/clientes", color: "#5856D6", gradiente: "linear-gradient(145deg,#7D7AFF,#3634A3)", icono: Building2, listo: false, grupo: "Empresa",
-    descripcion: "Tarjetas de contacto de cada cliente",
-    incluira: ["Tarjeta de contacto por cliente", "Contratos y fechas de terminación", "Embudo de clientes activos"],
-  },
-  {
-    slug: "terceros", nombre: "Terceros", ruta: "/modulo/terceros", color: "#A2845E", gradiente: "linear-gradient(145deg,#C4A57E,#7D6243)", icono: UsersRound, listo: false, grupo: "Empresa",
+    slug: "terceros", nombre: "Terceros", ruta: "/modulo/terceros", color: "#8E8E93", gradiente: "linear-gradient(145deg,#AEAEB2,#636366)", icono: UsersRound, listo: false, grupo: "Empresa",
     descripcion: "Proveedores, fotógrafos y freelancers",
     incluira: ["BBDD de terceros con datos tributarios y bancarios", "Pagos a terceros conectados a Pagos"],
   },
@@ -69,6 +64,17 @@ export const MODULOS: Modulo[] = [
 ];
 
 export const ICONOS_EXTRA = { Calculator, ShieldCheck };
+
+import type { Rol } from "./domain/types";
+
+/** Módulos visibles por rol. */
+export function permitido(rol: Rol, slug: string): boolean {
+  if (rol === "ADMINISTRADOR") return true;
+  if (rol === "COORDINACION") return true;
+  if (rol === "CONTADORA") return ["inicio", "clientes", "facturacion", "cartera", "ingresos", "gastos"].includes(slug);
+  if (rol === "CONSULTA") return ["inicio"].includes(slug);
+  return false;
+}
 
 export function moduloPorRuta(path: string): Modulo {
   if (path === "/") return MODULOS[0];
