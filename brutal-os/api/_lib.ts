@@ -1,5 +1,5 @@
 // Utilidades del backend de Brutal OS: sesión firmada, usuarios y acceso a Vercel Blob (privado).
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { get, put } from "@vercel/blob";
 
 export type Rol = "ADMINISTRADOR" | "COORDINACION" | "CONTADORA" | "CONSULTA" | "EMPLEADO";
@@ -27,10 +27,14 @@ const DURACION = 1000 * 60 * 60 * 24 * 7;
 export const json = (data: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
 
+// Llave de firma de sesiones: BRUTAL_SESSION_SECRET si existe; si no, se deriva del token
+// privado de la base (BLOB_READ_WRITE_TOKEN) o, en su defecto, de la clave del administrador.
 function secreto() {
   const s = process.env.BRUTAL_SESSION_SECRET;
-  if (!s || s.length < 32) throw new Error("Falta BRUTAL_SESSION_SECRET");
-  return s;
+  if (s && s.length >= 32) return s;
+  const t = process.env.BLOB_READ_WRITE_TOKEN || process.env.BRUTAL_ADMIN_CLAVE;
+  if (!t) throw new Error("Faltan las variables de entorno de Brutal OS en Vercel");
+  return createHash("sha256").update(`brutal-os-sesion:${t}`).digest("hex");
 }
 
 const firmar = (datos: string) => createHmac("sha256", secreto()).update(datos).digest("base64url");
