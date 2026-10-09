@@ -37,12 +37,13 @@ import { borrarArchivo, guardarArchivo } from "./files";
 // PostgreSQL (Supabase) — ver supabase/schema.sql — con RLS por rol.
 
 const KEY = "brutal-os-db-v3";
-const KEY_SESION = "brutal-os-sesion-v2";
+const KEY_SESION = "brutal-os-sesion-v3";
 
 export interface Sesion {
   rol: Rol;
   usuario: string;
   empleadoId: string; // perfil propio cuando rol = EMPLEADO
+  perfilId: string; // persona detrás de la sesión (socio, coordinación…)
 }
 
 let contador = Date.now();
@@ -69,7 +70,8 @@ function cargarSesion(): Sesion {
   } catch {
     /* noop */
   }
-  return { rol: "ADMINISTRADOR", usuario: "Administrador", empleadoId: "LB0004" };
+  const socio = db.empleados.find((e) => e.esSocio);
+  return { rol: "ADMINISTRADOR", usuario: socio ? nombreVisible(socio.nombreCompleto) : "Administrador", empleadoId: "LB0004", perfilId: socio?.id ?? "" };
 }
 
 function persistir() {
@@ -104,6 +106,18 @@ export function useDB(): DB {
 
 export function useSesion(): Sesion {
   return useSyncExternalStore(subscribe, () => sesion);
+}
+
+/** "JUAN DAVID MONTAÑA SANCHEZ" → "Juan David Montaña"; "FELIPE VARGAS PAOLINI" → "Felipe Vargas". */
+export function nombreVisible(nombre: string) {
+  const p = nombre.trim().split(/\s+/).map((w) => w.charAt(0) + w.slice(1).toLowerCase());
+  return p.length >= 4 ? `${p[0]} ${p[1]} ${p[2]}` : p.slice(0, 2).join(" ");
+}
+
+/** Nombre de pila para el saludo: dos nombres si la persona tiene 4 o más palabras. */
+export function nombreSaludo(nombre: string) {
+  const p = nombre.trim().split(/\s+/).map((w) => w.charAt(0) + w.slice(1).toLowerCase());
+  return p.length >= 4 ? `${p[0]} ${p[1]}` : p[0] ?? "";
 }
 
 export function getSesion() {

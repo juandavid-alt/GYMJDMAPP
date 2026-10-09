@@ -18,7 +18,7 @@ import { Avatar, Badge, BarList, Card, ChartTip, Empty, EstatusBadge, Kpi, Legen
 import NuevoEmpleado from "./NuevoEmpleado";
 import Importar from "./Importar";
 import { RetirarSheet } from "./Acciones";
-import { ALERTA_ICONO, NIVEL_COLOR } from "../Home";
+import { ALERTA_ICONO, NIVEL_COLOR } from "./alertasUi";
 
 type Tab = "resumen" | "directorio" | "retirados" | "socios" | "historial";
 

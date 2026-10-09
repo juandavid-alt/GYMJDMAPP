@@ -1,5 +1,5 @@
 import {
-  Banknote, BadgeDollarSign, Building2, Calculator, ChartNoAxesCombined, FileText, FolderOpen, Gavel, HandCoins, HeartHandshake, Landmark,
+  Banknote, BadgeDollarSign, Building2, Calculator, House, FileText, FolderOpen, Gavel, HandCoins, HeartHandshake, Landmark,
   ReceiptText, Settings, ShieldCheck, Users, Wallet, UsersRound, type LucideIcon,
 } from "lucide-react";
 
@@ -17,7 +17,7 @@ export interface Modulo {
 }
 
 export const MODULOS: Modulo[] = [
-  { slug: "inicio", nombre: "Índice", ruta: "/", color: "#1F4FFF", gradiente: "linear-gradient(145deg,#4C7DFF,#1534D6)", icono: ChartNoAxesCombined, listo: true, grupo: "Inicio", descripcion: "Torre de control: utilidad, cierre de año y alertas" },
+  { slug: "inicio", nombre: "Inicio", ruta: "/", color: "#1F4FFF", gradiente: "linear-gradient(145deg,#4C7DFF,#1534D6)", icono: House, listo: true, grupo: "Inicio", descripcion: "Resumen de la empresa y de cada módulo" },
   { slug: "empleados", nombre: "Empleados", ruta: "/empleados", color: "#AF52DE", gradiente: "linear-gradient(145deg,#C77DFF,#7B2FBE)", icono: Users, listo: true, grupo: "Personas", descripcion: "BBDD maestra: ingresos, retiros, contratos, documentos y exámenes" },
   { slug: "nomina", nombre: "Nómina", ruta: "/nomina", color: "#30C759", gradiente: "linear-gradient(145deg,#4BE07A,#16994A)", icono: Banknote, listo: true, grupo: "Personas", descripcion: "Plantilla salarial, nómina mensual, aprobación con código y provisiones" },
   {

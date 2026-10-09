@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { HashRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
-import { ChartNoAxesCombined, ChevronRight, HandCoins, Moon, ReceiptText, Sun, SunMoon, UserRound, LayoutGrid } from "lucide-react";
+import { House, ChevronRight, HandCoins, Moon, ReceiptText, Sun, SunMoon, UserRound, LayoutGrid } from "lucide-react";
 import { MODULOS, moduloPorRuta, permitido } from "./modules";
-import { ejecutarProrrogasAutomaticas, setSesion, useDB, useSesion } from "./data/store";
+import { ejecutarProrrogasAutomaticas, nombreVisible, setSesion, useDB, useSesion } from "./data/store";
 import { alertasEmpleados } from "./domain/empleados";
 import { ToastProvider, useToast } from "./components/ui";
-import Indice from "./pages/indice/Indice";
+import Inicio from "./pages/inicio/Inicio";
 import Clientes from "./pages/clientes/Clientes";
 import Facturacion from "./pages/facturacion/Facturacion";
 import Cartera from "./pages/cartera/Cartera";
@@ -141,7 +141,7 @@ function Shell() {
               </>
             ) : (
               <>
-                <Route path="/" element={<Indice />} />
+                <Route path="/" element={<Inicio />} />
                 {permitido(sesion.rol, "empleados") && <Route path="/empleados" element={<Empleados />} />}
                 {permitido(sesion.rol, "empleados") && <Route path="/empleados/:id" element={<Perfil />} />}
                 {permitido(sesion.rol, "nomina") && <Route path="/nomina/*" element={<Nomina />} />}
@@ -168,7 +168,7 @@ function Shell() {
           <NavLink to={`/empleados/${sesion.empleadoId}`}><UserRound />Mi perfil</NavLink>
         ) : (
           <>
-            <NavLink to="/" end><ChartNoAxesCombined />Índice</NavLink>
+            <NavLink to="/" end><House />Inicio</NavLink>
             {permitido(sesion.rol, "facturacion") && <NavLink to="/facturacion"><ReceiptText />Facturas</NavLink>}
             {permitido(sesion.rol, "cartera") && <NavLink to="/cartera"><HandCoins />Cartera</NavLink>}
             <NavLink to="/modulo/pagos" className={({ isActive }) => (isActive || loc.pathname.startsWith("/modulo") || loc.pathname.startsWith("/configuracion") ? "active" : "")}><LayoutGrid />Más</NavLink>
@@ -210,8 +210,14 @@ function RoleSwitcher() {
   const s = useSesion();
   const db = useDB();
   const activos = db.empleados.filter((e) => e.estatus === "ACTIVO" && !e.esSocio);
-  const cambiar = (rol: Rol) =>
-    setSesion({ rol, usuario: ({ ADMINISTRADOR: "Administrador", COORDINACION: "Coordinación", CONTADORA: "Contadora", CONSULTA: "Consulta" } as Record<string, string>)[rol] ?? activos.find((e) => e.id === s.empleadoId)?.nombreCompleto ?? "Empleado" });
+  const socios = db.empleados.filter((e) => e.esSocio);
+  const coord = db.empleados.find((e) => e.estatus === "ACTIVO" && e.cargo === "COORDINADOR ADMINISTRATIVO");
+  const persona = (id: string) => db.empleados.find((e) => e.id === id);
+  const cambiar = (rol: Rol) => {
+    const perfil = rol === "ADMINISTRADOR" ? socios[0] : rol === "COORDINACION" ? coord : rol === "EMPLEADO" ? persona(s.empleadoId) : undefined;
+    const fijo: Record<string, string> = { CONTADORA: "Contadora", CONSULTA: "Consulta" };
+    setSesion({ rol, perfilId: perfil?.id ?? "", usuario: perfil ? nombreVisible(perfil.nombreCompleto) : fijo[rol] ?? rol });
+  };
   return (
     <div className="stack" style={{ gap: 8 }}>
       <div className="nav-title" style={{ padding: "0 4px" }}>Ver como (demo)</div>
@@ -225,11 +231,18 @@ function RoleSwitcher() {
           <option value="EMPLEADO">Empleado</option>
         </select>
       </div>
+      {s.rol === "ADMINISTRADOR" && socios.length > 0 && (
+        <div className="role-pill glass" style={{ borderRadius: 14 }}>
+          <select value={s.perfilId} onChange={(e) => setSesion({ perfilId: e.target.value, usuario: nombreVisible(persona(e.target.value)?.nombreCompleto ?? "Administrador") })} style={{ flex: 1 }}>
+            {socios.map((e) => <option key={e.id} value={e.id}>{nombreVisible(e.nombreCompleto)}</option>)}
+          </select>
+        </div>
+      )}
       {s.rol === "EMPLEADO" && (
         <div className="role-pill glass" style={{ borderRadius: 14 }}>
           <select
             value={s.empleadoId}
-            onChange={(e) => setSesion({ empleadoId: e.target.value, usuario: activos.find((x) => x.id === e.target.value)?.nombreCompleto ?? "Empleado" })}
+            onChange={(e) => setSesion({ empleadoId: e.target.value, perfilId: e.target.value, usuario: nombreVisible(activos.find((x) => x.id === e.target.value)?.nombreCompleto ?? "Empleado") })}
             style={{ flex: 1 }}
           >
             {activos.map((e) => (
