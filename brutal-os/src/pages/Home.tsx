@@ -66,8 +66,8 @@ export default function Home() {
             </div>
             {per && <EstatusBadge estatus={per.estado} />}
           </div>
-          <div style={{ height: 90, margin: "10px -8px -6px", position: "relative", zIndex: 1 }}>
-            <ResponsiveContainer>
+          <div style={{ height: 90, margin: "10px -8px -6px", position: "relative", zIndex: 1, width: "calc(100% + 16px)", minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={nomina}>
                 <defs>
                   <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">

@@ -131,7 +131,7 @@ export function alertasEmpleados(empleados: Empleado[], ref = hoy()): Alerta[] {
           nivel: "amarillo",
           tipo: "DOCUMENTOS",
           empleadoId: e.id,
-          titulo: `${doc.faltantes.length} documentos pendientes`,
+          titulo: doc.faltantes.length === 1 ? "1 documento pendiente" : `${doc.faltantes.length} documentos pendientes`,
           detalle: doc.faltantes.map((t) => ARCHIVOS[t].etiqueta).join(", "),
         });
       }
@@ -141,7 +141,7 @@ export function alertasEmpleados(empleados: Empleado[], ref = hoy()): Alerta[] {
           nivel: "rojo",
           tipo: "DOCUMENTOS",
           empleadoId: e.id,
-          titulo: `${doc.vencidos.length} documentos vencidos`,
+          titulo: doc.vencidos.length === 1 ? "Documento vencido" : `${doc.vencidos.length} documentos vencidos`,
           detalle: doc.vencidos.map((a) => ARCHIVOS[a.tipo].etiqueta).join(", "),
         });
       }

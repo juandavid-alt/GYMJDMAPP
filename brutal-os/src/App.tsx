@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { HashRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { Banknote, ChevronRight, House, Moon, Sun, SunMoon, UserRound, Users, LayoutGrid } from "lucide-react";
 import { MODULOS, moduloPorRuta } from "./modules";
 import { ejecutarProrrogasAutomaticas, setSesion, useDB, useSesion } from "./data/store";
@@ -39,11 +39,11 @@ function useTema(): [Tema, () => void] {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ToastProvider>
         <Shell />
       </ToastProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
@@ -122,7 +122,6 @@ function Shell() {
           <div className="topbar">
             <Crumbs />
             <div className="toolbar">
-              <div className="hide-sm" style={{ display: "none" }} />
               <button className="btn glass-btn icon" onClick={cicloTema} title={`Tema: ${tema}`} aria-label="Cambiar tema">
                 {tema === "auto" ? <SunMoon /> : tema === "light" ? <Sun /> : <Moon />}
               </button>

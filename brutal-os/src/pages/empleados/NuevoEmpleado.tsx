@@ -5,7 +5,7 @@ import { buscarPorDocumento, crearEmpleado, reactivarEmpleado, useDB, useSesion,
 import { ARCHIVOS } from "../../domain/catalogos";
 import { calcularTerminacion, soloDigitos, validarCelular, validarCorreo } from "../../domain/empleados";
 import { hoy } from "../../domain/fechas";
-import type { TipoArchivo } from "../../domain/types";
+import type { Empleado, TipoArchivo } from "../../domain/types";
 import { fecha } from "../../lib/format";
 import { Field, Modal, useToast } from "../../components/ui";
 
@@ -19,7 +19,7 @@ const VACIO: NE = {
   tipoCuenta: "AHORROS", numeroCuenta: "", emergenciaNombre: "", emergenciaParentesco: "", emergenciaCelular: "", autorizacionDatos: false,
 };
 
-export default function NuevoEmpleado({ open, onClose, onCreado }: { open: boolean; onClose: () => void; onCreado: (id: string) => void }) {
+export default function NuevoEmpleado({ open, onClose, onCreado, reactivarId }: { open: boolean; onClose: () => void; onCreado: (id: string) => void; reactivarId?: string }) {
   const db = useDB();
   const sesion = useSesion();
   const toast = useToast();
@@ -33,6 +33,11 @@ export default function NuevoEmpleado({ open, onClose, onCreado }: { open: boole
 
   useEffect(() => {
     if (!open) return;
+    const previo = reactivarId ? db.empleados.find((x) => x.id === reactivarId) : undefined;
+    if (previo) {
+      prefill(previo);
+      return;
+    }
     try {
       const b = localStorage.getItem(BORRADOR);
       if (b) {
@@ -58,6 +63,11 @@ export default function NuevoEmpleado({ open, onClose, onCreado }: { open: boole
   }, [f, open]);
 
   const set = <K extends keyof NE>(k: K, v: NE[K]) => setF((s) => ({ ...s, [k]: v }));
+  function prefill(x: Empleado) {
+    setReactivar(x.id);
+    const { id: _i, estatus: _e, esSocio: _s, renovaciones: _r, terminacionContrato: _t, examen: _x, archivos: _a, creadoEn: _c, autorizacionFecha: _af, retiro: _rt, examenEgreso: _ee, ...datos } = x;
+    setF({ ...VACIO, ...datos, inicioContrato: hoy(), autorizacionDatos: false });
+  }
   const existente = f.numeroDocumento.length >= 5 ? buscarPorDocumento(f.numeroDocumento) : undefined;
   const tiposActivos = db.listas.tiposContrato.filter((t) => t.activo);
   const cargos = db.listas.cargos.filter((c) => c.area === f.area);
@@ -178,11 +188,7 @@ export default function NuevoEmpleado({ open, onClose, onCreado }: { open: boole
                 </div>
                 <button className="btn sm" onClick={() => { cerrar(); nav(`/empleados/${existente.id}`); }}>Actualizar perfil</button>
                 {existente.estatus === "RETIRADO" && (
-                  <button className="btn sm primary" onClick={() => {
-                    setReactivar(existente.id);
-                    const { id: _i, estatus: _e, esSocio: _s, renovaciones: _r, terminacionContrato: _t, examen: _x, archivos: _a, creadoEn: _c, autorizacionFecha: _af, retiro: _rt, examenEgreso: _ee, ...datos } = existente;
-                    setF({ ...VACIO, ...datos, inicioContrato: hoy(), autorizacionDatos: false });
-                  }}>Reactivar {existente.id}</button>
+                  <button className="btn sm primary" onClick={() => prefill(existente)}>Reactivar {existente.id}</button>
                 )}
               </div>
             </div>

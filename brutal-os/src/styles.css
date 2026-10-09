@@ -549,3 +549,20 @@ details.disclosure summary::-webkit-details-marker { display: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Impresión de desprendibles */
+.payslip { background: #fff; color: #000; border-radius: 18px; padding: 28px; font-size: 13px; }
+.payslip h2 { margin: 0; font-size: 20px; letter-spacing: -0.02em; }
+.payslip table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.payslip td { padding: 5px 0; border-bottom: 1px solid #eee; }
+.payslip td.r { text-align: right; font-variant-numeric: tabular-nums; }
+.payslip .tot td { font-weight: 700; border-bottom: 2px solid #000; }
+@media print {
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  .payslip { break-after: page; box-shadow: none; }
+}
+
+.hero .badge { background: rgba(255,255,255,.22); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+.hero .recharts-wrapper, .hero .recharts-responsive-container { width: 100% !important; }

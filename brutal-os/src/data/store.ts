@@ -500,7 +500,8 @@ function construirFilas(d: DB, anio: number, mes: number): FilaNomina[] {
       retencionModo: s.retencionModo,
       retencionManual: s.retencionManual,
       novedades: { ...NOVEDADES_VACIAS, diasContrato: dias },
-      cargada: false,
+      // las filas de socios las gestiona el ADMINISTRADOR; entran cargadas por defecto
+      cargada: e.esSocio,
     });
   }
   return filas.sort((a, b) => (a.esSocio === b.esSocio ? a.empleadoId.localeCompare(b.empleadoId) : a.esSocio ? 1 : -1));
@@ -767,4 +768,34 @@ function inicializar(): DB {
   d.historial.unshift({ id: nuevoId(), ts: new Date().toISOString(), usuario: "Sistema", modulo: "NOMINA", evento: "NÓMINA GENERADA", detalle: `${mesId(anio, mes)} (mes anterior ${mesId(prev.anio, prev.mes)} cerrado)` });
   d.historial.sort((a, b) => (a.ts < b.ts ? 1 : -1));
   return d;
+}
+
+// ---------------- Importador desde Excel ----------------
+
+/** Inserta o actualiza por ID (sin duplicar). Los salarios iniciales salen de la plantilla por cargo. */
+export function importarEmpleados(filas: Empleado[]) {
+  mutar((d) => {
+    let nuevos = 0;
+    let actualizados = 0;
+    for (const e of filas) {
+      const i = d.empleados.findIndex((x) => x.id === e.id || x.numeroDocumento === e.numeroDocumento);
+      if (i >= 0) {
+        const antes = d.empleados[i];
+        const despues = { ...e, id: antes.id, archivos: antes.archivos, examen: antes.examen };
+        d.empleados[i] = despues;
+        d.historial.unshift(...diffEmpleado(antes, despues, sesion.usuario, nuevoId));
+        actualizados++;
+      } else {
+        d.empleados.push(e);
+        nuevos++;
+        log(d, { modulo: "EMPLEADOS", evento: "INGRESO", empleadoId: e.id, nombre: e.nombreCompleto, campo: "estatus", anterior: "", nuevo: e.estatus, detalle: "Importado desde Excel" });
+        if (e.retiro) log(d, { modulo: "EMPLEADOS", evento: "RETIRO", empleadoId: e.id, nombre: e.nombreCompleto, campo: "estatus", anterior: "ACTIVO", nuevo: "RETIRADO", detalle: `Migrado: ${e.retiro.fechaSalida}` });
+        const pl = d.plantilla.find((p) => p.cargo === e.cargo);
+        if (pl && !d.salarios.some((s) => s.empleadoId === e.id)) {
+          d.salarios.push({ id: nuevoId(), empleadoId: e.id, base: pl.base, auxNoPrestPct: pl.auxNoPrestPct, deduccionesAsumidas: false, retencionModo: "MANUAL", retencionManual: 0, vigenteDesde: e.inicioContrato, motivo: "Importación: base de la plantilla por cargo" });
+        }
+      }
+    }
+    log(d, { modulo: "EMPLEADOS", evento: "IMPORTACIÓN", detalle: `${nuevos} nuevos · ${actualizados} actualizados` });
+  });
 }

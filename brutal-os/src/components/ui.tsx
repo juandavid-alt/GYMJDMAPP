@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, Check, ChevronRight, Info, Minus, ShieldCheck, TriangleAlert, X } from "lucide-react";
 import { colorAvatar, iniciales, pesos } from "../lib/format";
@@ -199,7 +200,7 @@ export function Modal({
     };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`sheet ${size}`} role="dialog" aria-modal="true">
         <div className="grabber" />
@@ -215,7 +216,8 @@ export function Modal({
         <div className="sheet-body">{children}</div>
         {footer && <div className="sheet-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
