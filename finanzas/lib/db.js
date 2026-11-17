@@ -1,5 +1,7 @@
 import { neon } from "@neondatabase/serverless";
-export const sql = neon(process.env.DATABASE_URL);
+// Acepta los nombres que crea la integración de Neon en Vercel (con o sin prefijo).
+const url = process.env.DATABASE_URL || process.env.DATABASE_POSTGRES_URL || process.env.POSTGRES_URL;
+export const sql = neon(url);
 
 export async function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
