@@ -1,0 +1,22 @@
+{
+  "name": "finanzas-juan-david",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "db:setup": "node scripts/db-setup.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0",
+    "vite-plugin-pwa": "^0.20.5"
+  }
+}
