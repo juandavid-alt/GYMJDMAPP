@@ -22,3 +22,13 @@ export function authorized(req) {
   const t = req.headers["x-token"] || (req.headers.authorization || "").replace(/^Bearer\s+/i, "") || req.query.token;
   return !!process.env.FIN_TOKEN && t === process.env.FIN_TOKEN;
 }
+
+// Crea las tablas la primera vez (así no hay que correr ningún script).
+let ready;
+export function ensureTables() {
+  ready ||= (async () => {
+    await sql`CREATE TABLE IF NOT EXISTS fin_state (id text PRIMARY KEY, data jsonb NOT NULL, updated_at timestamptz DEFAULT now())`;
+    await sql`CREATE TABLE IF NOT EXISTS fin_inbox (id serial PRIMARY KEY, raw text NOT NULL, parsed jsonb, consumed boolean DEFAULT false, created_at timestamptz DEFAULT now())`;
+  })().catch((e) => { ready = null; throw e; });
+  return ready;
+}

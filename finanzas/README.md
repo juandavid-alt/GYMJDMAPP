@@ -43,7 +43,7 @@ Sí, pero con matices. Opciones en Colombia, de más fácil a más compleja:
 2. **Vercel:** *Add New → Project* → este repo → **Root Directory: `finanzas`** → variables:
    - `DATABASE_URL` = cadena de Neon
    - `FIN_TOKEN` = una clave larga que inventes (ej. generada por un gestor de contraseñas)
-3. Crea las tablas una vez: `cd finanzas && npm install && DATABASE_URL="..." npm run db:setup`
+3. Las tablas se crean solas en el primer uso (o manualmente con `npm run db:setup`).
 4. En el iPhone: abre la URL en Safari → Compartir → **Agregar a inicio**. En **Ajustes** de la app
    pega tu `FIN_TOKEN` y toca *Sincronizar ahora*.
 5. **Atajo automático** (Atajos → Automatización → +):

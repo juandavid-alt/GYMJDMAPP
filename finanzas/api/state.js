@@ -1,10 +1,11 @@
 // GET  /api/state          -> { data, updatedAt, inbox: [...pendientes] }
 // PUT  /api/state { data, consumed: [ids] } -> guarda tu estado y marca la bandeja como leída
 // Respaldo en la nube (Neon) para no perder nada si cambias de teléfono.
-import { sql, readBody, json, authorized } from "../lib/db.js";
+import { sql, readBody, json, authorized, ensureTables } from "../lib/db.js";
 
 export default async function handler(req, res) {
   if (!authorized(req)) return json(res, 401, { error: "token inválido" });
+  await ensureTables();
   if (req.method === "GET") {
     const [row] = await sql`SELECT data, updated_at FROM fin_state WHERE id = 'me'`;
     const inbox = await sql`SELECT id, raw, parsed, created_at FROM fin_inbox WHERE consumed = false ORDER BY id`;

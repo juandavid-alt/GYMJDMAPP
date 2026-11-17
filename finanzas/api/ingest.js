@@ -2,11 +2,12 @@
 // Lo llama el Atajo de iPhone cada vez que llega un SMS/correo del banco.
 // Guarda la notificación en la bandeja; la app la convierte en movimiento y te pregunta
 // "¿Personal o Casa?" la próxima vez que la abras.
-import { sql, readBody, json, authorized } from "../lib/db.js";
+import { sql, readBody, json, authorized, ensureTables } from "../lib/db.js";
 import { parseNotification } from "../src/parser.js";
 
 export default async function handler(req, res) {
   if (!authorized(req)) return json(res, 401, { error: "token inválido" });
+  await ensureTables();
   if (req.method !== "POST") return json(res, 405, { error: "usa POST" });
   const b = await readBody(req);
   const text = (b.text || b.mensaje || "").toString().slice(0, 4000);
